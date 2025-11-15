@@ -1,0 +1,24 @@
+# docker
+.dockerignore
+Dockerfile
+docker-compose.yaml
+docker-compose.local.yaml
+
+# git
+/.git
+.gitignore
+
+# github
+/.github
+
+
+# project
+/docs
+/infrastructure
+*.md
+LICENSE
+
+# rust
+target
+.env
+.env.local
