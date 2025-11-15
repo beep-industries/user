@@ -1,0 +1,178 @@
+use crate::{error::ApiError, middleware::Claims};
+use axum::{
+    extract::{Extension, Path, Query, State},
+    http::StatusCode,
+    Json,
+};
+use serde::Deserialize;
+use std::sync::Arc;
+use user_core::{
+    CoreError, KeycloakService, UpdateKeycloakUserRequest, UpdateParamRequest,
+    UpdateUserRequest, UserBasicInfo, UserFullInfo, UserRepository,
+};
+use uuid::Uuid;
+
+#[derive(Clone)]
+pub struct AppState {
+    pub user_repo: UserRepository,
+    pub keycloak_service: KeycloakService,
+}
+
+#[derive(Deserialize)]
+pub struct FullInfoQuery {
+    #[serde(default)]
+    pub full_info: bool,
+}
+
+pub async fn get_current_user(
+    Extension(claims): Extension<Claims>,
+    Query(query): Query<FullInfoQuery>,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let keycloak_id = claims.sub;
+
+    let user = state
+        .user_repo
+        .get_user_by_keycloak_id(&keycloak_id)
+        .await?
+        .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
+
+    if query.full_info {
+        let keycloak_info = state
+            .keycloak_service
+            .get_user_info(&keycloak_id)
+            .await
+            .map_err(|e| CoreError::KeycloakError(e.to_string()))?;
+
+        let full_info = UserFullInfo {
+            id: user.id,
+            username: user.username,
+            profile_picture: user.profile_picture,
+            status: user.status,
+            keycloak_id: user.keycloak_id,
+            email: keycloak_info.email,
+            first_name: keycloak_info.first_name,
+            last_name: keycloak_info.last_name,
+        };
+
+        Ok(Json(serde_json::to_value(full_info).unwrap()))
+    } else {
+        let basic_info = UserBasicInfo {
+            id: user.id,
+            username: user.username,
+            profile_picture: user.profile_picture,
+            status: user.status,
+            keycloak_id: user.keycloak_id,
+        };
+
+        Ok(Json(serde_json::to_value(basic_info).unwrap()))
+    }
+}
+
+pub async fn get_user_by_id(
+    Path(user_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<UserBasicInfo>, ApiError> {
+    let user = state
+        .user_repo
+        .get_user_by_id(user_id)
+        .await?
+        .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
+
+    let basic_info = UserBasicInfo {
+        id: user.id,
+        username: user.username,
+        profile_picture: user.profile_picture,
+        status: user.status,
+        keycloak_id: user.keycloak_id,
+    };
+
+    Ok(Json(basic_info))
+}
+
+pub async fn update_current_user(
+    Extension(claims): Extension<Claims>,
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<UpdateUserRequest>,
+) -> Result<Json<UserBasicInfo>, ApiError> {
+    let keycloak_id = claims.sub;
+
+    let user = state
+        .user_repo
+        .get_user_by_keycloak_id(&keycloak_id)
+        .await?
+        .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
+
+    let updated_user = state.user_repo.update_user(user.id, req).await?;
+
+    let basic_info = UserBasicInfo {
+        id: updated_user.id,
+        username: updated_user.username,
+        profile_picture: updated_user.profile_picture,
+        status: updated_user.status,
+        keycloak_id: updated_user.keycloak_id,
+    };
+
+    Ok(Json(basic_info))
+}
+
+pub async fn update_current_user_keycloak_info(
+    Extension(claims): Extension<Claims>,
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<UpdateKeycloakUserRequest>,
+) -> Result<StatusCode, ApiError> {
+    let keycloak_id = claims.sub;
+
+    let user = state
+        .user_repo
+        .get_user_by_keycloak_id(&keycloak_id)
+        .await?
+        .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
+
+    state
+        .keycloak_service
+        .update_user_info(&user.keycloak_id, req)
+        .await
+        .map_err(|e| CoreError::KeycloakError(e.to_string()))?;
+
+    Ok(StatusCode::OK)
+}
+
+pub async fn get_current_user_params(
+    Extension(claims): Extension<Claims>,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<user_core::Param>, ApiError> {
+    let keycloak_id = claims.sub;
+
+    let user = state
+        .user_repo
+        .get_user_by_keycloak_id(&keycloak_id)
+        .await?
+        .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
+
+    let param = state
+        .user_repo
+        .get_param_by_user_id(user.id)
+        .await?
+        .ok_or_else(|| CoreError::NotFound("Params not found".to_string()))?;
+
+    Ok(Json(param))
+}
+
+pub async fn update_current_user_params(
+    Extension(claims): Extension<Claims>,
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<UpdateParamRequest>,
+) -> Result<Json<user_core::Param>, ApiError> {
+    let keycloak_id = claims.sub;
+
+    let user = state
+        .user_repo
+        .get_user_by_keycloak_id(&keycloak_id)
+        .await?
+        .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
+
+    let param = state.user_repo.update_param(user.id, req).await?;
+
+    Ok(Json(param))
+}
