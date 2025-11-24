@@ -1,4 +1,4 @@
-FROM rust:1.83-bookworm AS rust-build
+FROM rust:1.89-bookworm AS rust-build
 
 WORKDIR /usr/local/src/user
 
