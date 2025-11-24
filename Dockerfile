@@ -2,8 +2,6 @@ FROM rust:1.89-bookworm AS rust-build
 
 WORKDIR /usr/local/src/user
 
-RUN cargo install sqlx-cli --no-default-features --features postgres
-
 COPY Cargo.toml Cargo.lock ./
 COPY api/Cargo.toml ./api/
 COPY core/Cargo.toml ./core/
@@ -52,10 +50,10 @@ FROM runtime AS api
 
 COPY --from=rust-build /usr/local/src/user/target/release/user-api /usr/local/bin/
 COPY --from=rust-build /usr/local/src/user/migrations /usr/local/src/user/migrations
-COPY --from=rust-build /usr/local/cargo/bin/sqlx /usr/local/bin/
 
 WORKDIR /usr/local/src/user
 
 EXPOSE 3000
 
 ENTRYPOINT ["user-api"]
+CMD ["run"]
