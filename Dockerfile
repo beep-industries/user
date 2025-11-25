@@ -14,6 +14,7 @@ RUN \
     touch libs/config/src/lib.rs && \
     cargo build --release
 
+COPY migrations migrations
 COPY api api
 COPY core core
 COPY libs/config libs/config
