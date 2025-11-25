@@ -7,7 +7,7 @@ use axum::{
 use serde::Deserialize;
 use std::sync::Arc;
 use user_core::{
-    CoreError, KeycloakService, UpdateKeycloakUserRequest, UpdateParamRequest,
+    CoreError, KeycloakService, Setting, UpdateKeycloakUserRequest, UpdateSettingRequest,
     UpdateUserRequest, UserBasicInfo, UserFullInfo, UserRepository,
 };
 use uuid::Uuid;
@@ -138,10 +138,10 @@ pub async fn update_current_user_keycloak_info(
     Ok(StatusCode::OK)
 }
 
-pub async fn get_current_user_params(
+pub async fn get_current_user_settings(
     Extension(claims): Extension<Claims>,
     State(state): State<Arc<AppState>>,
-) -> Result<Json<user_core::Param>, ApiError> {
+) -> Result<Json<Setting>, ApiError> {
     let keycloak_id = claims.sub;
 
     let user = state
@@ -150,20 +150,20 @@ pub async fn get_current_user_params(
         .await?
         .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
 
-    let param = state
+    let setting = state
         .user_repo
-        .get_param_by_user_id(user.id)
+        .get_setting_by_user_id(user.id)
         .await?
-        .ok_or_else(|| CoreError::NotFound("Params not found".to_string()))?;
+        .ok_or_else(|| CoreError::NotFound("Setting not found".to_string()))?;
 
-    Ok(Json(param))
+    Ok(Json(setting))
 }
 
-pub async fn update_current_user_params(
+pub async fn update_current_user_settings(
     Extension(claims): Extension<Claims>,
     State(state): State<Arc<AppState>>,
-    Json(req): Json<UpdateParamRequest>,
-) -> Result<Json<user_core::Param>, ApiError> {
+    Json(req): Json<UpdateSettingRequest>,
+) -> Result<Json<Setting>, ApiError> {
     let keycloak_id = claims.sub;
 
     let user = state
@@ -172,7 +172,7 @@ pub async fn update_current_user_params(
         .await?
         .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
 
-    let param = state.user_repo.update_param(user.id, req).await?;
+    let setting = state.user_repo.update_setting(user.id, req).await?;
 
-    Ok(Json(param))
+    Ok(Json(setting))
 }
