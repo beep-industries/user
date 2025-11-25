@@ -30,18 +30,18 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, error_message) = match self.0 {
             CoreError::DatabaseError(e) => {
-                log::error!("Database error: {}", e);
+                tracing::error!("Database error: {}", e);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string())
             }
             CoreError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
             CoreError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
             CoreError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
             CoreError::InternalError(msg) => {
-                log::error!("Internal error: {}", msg);
+                tracing::error!("Internal error: {}", msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, msg)
             }
             CoreError::KeycloakError(msg) => {
-                log::error!("Keycloak error: {}", msg);
+                tracing::error!("Keycloak error: {}", msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Keycloak error".to_string())
             }
         };
