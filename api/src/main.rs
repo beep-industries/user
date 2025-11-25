@@ -39,31 +39,36 @@ enum Commands {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    env_logger::init();
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .init();
 
     let cli = Cli::parse();
     let config = Config::from_env()?;
 
     match cli.command {
         Commands::Migrate => {
-            log::info!("Connecting to database...");
+            tracing::info!("Connecting to database...");
             let pool = PgPoolOptions::new()
                 .max_connections(5)
                 .connect(&config.database_url)
                 .await?;
 
-            log::info!("Running migrations...");
+            tracing::info!("Running migrations...");
             sqlx::migrate!("../migrations").run(&pool).await?;
-            log::info!("Migrations completed successfully");
+            tracing::info!("Migrations completed successfully");
         }
         Commands::Run => {
-            log::info!("Connecting to database...");
+            tracing::info!("Connecting to database...");
             let pool = PgPoolOptions::new()
                 .max_connections(5)
                 .connect(&config.database_url)
                 .await?;
 
-            log::info!("Initializing services...");
+            tracing::info!("Initializing services...");
             let user_repo = UserRepository::new(pool);
             let keycloak_service = KeycloakService::new(
                 config.keycloak_url,
@@ -96,7 +101,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let app = Router::new().merge(protected_routes).layer(cors);
 
             let addr = format!("{}:{}", config.server_host, config.server_port);
-            log::info!("Server listening on {}", addr);
+            tracing::info!("Server listening on {}", addr);
 
             let listener = tokio::net::TcpListener::bind(&addr).await?;
             axum::serve(listener, app).await?;

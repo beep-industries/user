@@ -42,7 +42,7 @@ pub async fn auth_middleware(mut req: Request<Body>, next: Next) -> Result<Respo
         &validation,
     )
     .map_err(|e| {
-        log::error!("JWT validation error: {}", e);
+        tracing::error!("JWT validation error: {}", e);
         StatusCode::UNAUTHORIZED
     })?;
 
