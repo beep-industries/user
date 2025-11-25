@@ -1,4 +1,4 @@
-use crate::models::{CreateUserRequest, Param, UpdateParamRequest, UpdateUserRequest, User};
+use crate::models::{CreateUserRequest, Setting, UpdateSettingRequest, UpdateUserRequest, User};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -102,8 +102,8 @@ impl UserRepository {
         Ok(user)
     }
 
-    pub async fn get_param_by_user_id(&self, user_id: Uuid) -> Result<Option<Param>, sqlx::Error> {
-        let param = sqlx::query_as::<_, Param>(
+    pub async fn get_setting_by_user_id(&self, user_id: Uuid) -> Result<Option<Setting>, sqlx::Error> {
+        let setting = sqlx::query_as::<_, Setting>(
             r#"
             SELECT id, user_id, theme, lang, created_at, updated_at
             FROM param
@@ -114,11 +114,11 @@ impl UserRepository {
         .fetch_optional(&self.pool)
         .await?;
 
-        Ok(param)
+        Ok(setting)
     }
 
-    pub async fn create_param(&self, user_id: Uuid) -> Result<Param, sqlx::Error> {
-        let param = sqlx::query_as::<_, Param>(
+    pub async fn create_setting(&self, user_id: Uuid) -> Result<Setting, sqlx::Error> {
+        let setting = sqlx::query_as::<_, Setting>(
             r#"
             INSERT INTO param (user_id)
             VALUES ($1)
@@ -129,40 +129,40 @@ impl UserRepository {
         .fetch_one(&self.pool)
         .await?;
 
-        Ok(param)
+        Ok(setting)
     }
 
-    pub async fn update_param(
+    pub async fn update_setting(
         &self,
         user_id: Uuid,
-        req: UpdateParamRequest,
-    ) -> Result<Param, sqlx::Error> {
+        req: UpdateSettingRequest,
+    ) -> Result<Setting, sqlx::Error> {
         let mut query = String::from("UPDATE param SET updated_at = NOW()");
         let mut bindings = Vec::new();
-        let mut param_count = 1;
+        let mut bind_count = 1;
 
         if let Some(theme) = &req.theme {
-            query.push_str(&format!(", theme = ${}", param_count));
+            query.push_str(&format!(", theme = ${}", bind_count));
             bindings.push(theme.clone());
-            param_count += 1;
+            bind_count += 1;
         }
 
         if let Some(lang) = &req.lang {
-            query.push_str(&format!(", lang = ${}", param_count));
+            query.push_str(&format!(", lang = ${}", bind_count));
             bindings.push(lang.clone());
-            param_count += 1;
+            bind_count += 1;
         }
 
-        query.push_str(&format!(" WHERE user_id = ${} RETURNING id, user_id, theme, lang, created_at, updated_at", param_count));
+        query.push_str(&format!(" WHERE user_id = ${} RETURNING id, user_id, theme, lang, created_at, updated_at", bind_count));
 
-        let mut q = sqlx::query_as::<_, Param>(&query);
+        let mut q = sqlx::query_as::<_, Setting>(&query);
         for binding in bindings {
             q = q.bind(binding);
         }
         q = q.bind(user_id);
 
-        let param = q.fetch_one(&self.pool).await?;
+        let setting = q.fetch_one(&self.pool).await?;
 
-        Ok(param)
+        Ok(setting)
     }
 }

@@ -4,8 +4,8 @@ mod middleware;
 
 use crate::{
     handlers::{
-        get_current_user, get_current_user_params, get_user_by_id, update_current_user,
-        update_current_user_keycloak_info, update_current_user_params, AppState,
+        get_current_user, get_current_user_settings, get_user_by_id, update_current_user,
+        update_current_user_keycloak_info, update_current_user_settings, AppState,
     },
     middleware::auth_middleware,
 };
@@ -91,8 +91,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .route("/users/me", get(get_current_user).put(update_current_user))
                 .route("/users/me/keycloak", put(update_current_user_keycloak_info))
                 .route(
-                    "/users/me/params",
-                    get(get_current_user_params).put(update_current_user_params),
+                    "/users/me/settings",
+                    get(get_current_user_settings).put(update_current_user_settings),
                 )
                 .route("/users/:user_id", get(get_user_by_id))
                 .layer(axum_middleware::from_fn(auth_middleware))

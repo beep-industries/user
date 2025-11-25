@@ -1,71 +1,81 @@
 # Docker Setup
 
-## Fichiers Docker
+## Docker Files
 
-- `Dockerfile` : Build multi-stage optimisé avec cache des dépendances
-- `docker-compose.yml` : Setup production sans Keycloak
-- `docker-compose.local.yml` : Setup développement qui se connecte au Keycloak existant
+- `Dockerfile` : Multi-stage optimized build with dependency caching
+- `docker-compose.yml` : Development setup that connects to existing Keycloak
 
-## Utilisation
+## Usage
 
-### Développement Local (avec Keycloak existant)
+### Local Development (with existing Keycloak)
 
-1. **Démarrer le Keycloak depuis votre projet client** :
+1. **Start Keycloak from your client project** :
 ```bash
 cd /path/to/your/client
 docker compose up -d
 ```
 
-2. **Configurer le client Keycloak** :
-   - Connectez-vous à Keycloak : http://localhost:8080
-   - Créez le client `user-service` dans le realm `myrealm`
-   - Activez "Client authentication" (confidential)
-   - Activez "Service accounts roles"
-   - Récupérez le secret dans l'onglet "Credentials"
+2. **Configure the Keycloak client** :
+   - Login to Keycloak: http://localhost:8080
+   - Create the `user-service` client in the `myrealm` realm
+   - Enable "Client authentication" (confidential)
+   - Enable "Service accounts roles"
+   - Get the secret from the "Credentials" tab
 
-3. **Créer le fichier `.env`** :
+3. **Create the `.env` file** :
 ```bash
 cp .env.example .env
 ```
 
-Éditez `.env` :
+Edit `.env` :
 ```env
-KEYCLOAK_CLIENT_SECRET=votre-secret-depuis-keycloak
-JWT_SECRET=votre-jwt-secret-key
+KEYCLOAK_CLIENT_SECRET=your-secret-from-keycloak
+JWT_SECRET=your-jwt-secret-key
 ```
 
-4. **Lancer le service user** :
+4. **Start postgres and run migrations** :
 ```bash
-docker compose -f docker-compose.local.yml up -d
+docker compose up -d postgres
+docker compose run --rm user-api migrate
 ```
 
-Le service sera disponible sur http://localhost:3000
+5. **Start the user service** :
+```bash
+docker compose up -d user-api
+```
 
-### Production (sans Keycloak)
+The service will be available at http://localhost:3000
 
-Pour la production, Keycloak doit être déployé séparément :
+## CLI Commands
 
+The `user-api` binary supports the following commands:
+
+| Command | Description |
+|---------|-------------|
+| `migrate` | Run database migrations |
+| `run` | Start the API server (default) |
+
+### Run migrations
+```bash
+docker compose up -d postgres
+docker compose run --rm user-api migrate
+```
+
+### Start the server
 ```bash
 docker compose up -d
+# or explicitly:
+docker compose run --rm user-api run
 ```
 
-Vous devrez configurer les variables d'environnement pour pointer vers votre Keycloak :
-```bash
-export KEYCLOAK_URL=https://your-keycloak-domain
-export KEYCLOAK_CLIENT_SECRET=your-production-secret
-export JWT_SECRET=your-production-jwt-secret
+## Manual Build
 
-docker compose up -d
-```
-
-## Build manuel
-
-### Build l'image
+### Build the image
 ```bash
 docker build -t user-service:latest .
 ```
 
-### Run le container
+### Run the container
 ```bash
 docker run -p 3000:3000 \
   -e DATABASE_URL=postgres://... \
@@ -77,31 +87,30 @@ docker run -p 3000:3000 \
   user-service:latest
 ```
 
-## Commandes utiles
+## Useful Commands
 
-### Voir les logs
+### View logs
 ```bash
-docker compose -f docker-compose.local.yml logs -f user-api
+docker compose logs -f user-api
 ```
 
-### Rebuild après modifications
+### Rebuild after changes
 ```bash
-docker compose -f docker-compose.local.yml up -d --build
+docker compose up -d --build
 ```
 
-### Arrêter les services
+### Stop services
 ```bash
-docker compose -f docker-compose.local.yml down
+docker compose down
 ```
 
-### Arrêter et supprimer les volumes
+### Stop and remove volumes
 ```bash
-docker compose -f docker-compose.local.yml down -v
+docker compose down -v
 ```
 
-## Architecture des réseaux
+## Network Architecture
 
-### Développement Local
 ```
 ┌─────────────────────────────────────┐
 │   keycloak_network (external)      │
@@ -118,35 +127,35 @@ docker compose -f docker-compose.local.yml down -v
 └────────────────────────────────────┘
 ```
 
-Le service user-api est connecté à deux réseaux :
-- `keycloak_network` : pour communiquer avec Keycloak
-- `user-network` : pour communiquer avec sa propre base de données
+The user-api service is connected to two networks:
+- `keycloak_network` : to communicate with Keycloak
+- `user-network` : to communicate with its own database
 
-## Optimisations du Dockerfile
+## Dockerfile Optimizations
 
-Le Dockerfile utilise plusieurs optimisations :
-1. **Build multi-stage** : Sépare la compilation de l'image runtime
-2. **Cache des dépendances** : Build les dépendances avant le code source
-3. **Image minimale** : Utilise debian:bookworm-slim pour le runtime
-4. **Non-root user** : Execute l'application avec un utilisateur dédié
-5. **Migrations incluses** : Les migrations SQL sont copiées dans l'image
+The Dockerfile uses several optimizations:
+1. **Multi-stage build** : Separates compilation from runtime image
+2. **Dependency caching** : Builds dependencies before source code
+3. **Minimal image** : Uses debian:bookworm-slim for runtime
+4. **Non-root user** : Runs the application with a dedicated user
+5. **Migrations included** : SQL migrations are copied into the image
 
 ## Troubleshooting
 
-### Le service ne peut pas se connecter à Keycloak
-Vérifiez que le réseau `keycloak_network` existe et que Keycloak est démarré :
+### Service cannot connect to Keycloak
+Check that the `keycloak_network` network exists and Keycloak is running:
 ```bash
 docker network ls | grep keycloak
 docker compose -f /path/to/client/docker-compose.yml ps
 ```
 
-### Erreur de connexion à la base de données
-Vérifiez que PostgreSQL est démarré et accessible :
+### Database connection error
+Check that PostgreSQL is running and accessible:
 ```bash
-docker compose -f docker-compose.local.yml logs postgres
+docker compose logs postgres
 ```
 
-### Voir les migrations
+### Check migration status
 ```bash
-docker compose -f docker-compose.local.yml exec user-api sqlx migrate info
+docker compose run --rm user-api migrate
 ```

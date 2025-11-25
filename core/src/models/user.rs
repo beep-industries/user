@@ -15,7 +15,7 @@ pub struct User {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct Param {
+pub struct Setting {
     pub id: Uuid,
     pub user_id: Uuid,
     pub theme: Option<String>,
@@ -74,7 +74,7 @@ pub struct UpdateKeycloakUserRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateParamRequest {
+pub struct UpdateSettingRequest {
     pub theme: Option<String>,
     pub lang: Option<String>,
 }
