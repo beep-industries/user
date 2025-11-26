@@ -32,7 +32,7 @@ Retrieves the current authenticated user's information.
   "display_name": "string",
   "profile_picture": "string | null",
   "status": "string",
-  "keycloak_id": "string"
+  "sub": "string"
 }
 ```
 
@@ -44,7 +44,7 @@ Retrieves the current authenticated user's information.
   "display_name": "string",
   "profile_picture": "string | null",
   "status": "string",
-  "keycloak_id": "string",
+  "sub": "string",
   "username": "string",
   "email": "string",
   "first_name": "string",
@@ -76,7 +76,7 @@ Updates the current authenticated user's profile.
   "display_name": "string",
   "profile_picture": "string | null",
   "status": "string",
-  "keycloak_id": "string"
+  "sub": "string"
 }
 ```
 
@@ -166,7 +166,7 @@ Retrieves a specific user's information by their ID.
   "display_name": "string",
   "profile_picture": "string | null",
   "status": "string",
-  "keycloak_id": "string"
+  "sub": "string"
 }
 ```
 

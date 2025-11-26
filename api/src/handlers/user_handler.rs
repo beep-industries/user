@@ -29,18 +29,18 @@ pub async fn get_current_user(
     Query(query): Query<FullInfoQuery>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    let keycloak_id = claims.sub;
+    let sub = claims.sub;
 
     let user = state
         .user_repo
-        .get_user_by_keycloak_id(&keycloak_id)
+        .get_user_by_sub(&sub)
         .await?
         .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
 
     if query.full_info {
         let keycloak_info = state
             .keycloak_service
-            .get_user_info(&keycloak_id)
+            .get_user_info(&sub)
             .await
             .map_err(|e| CoreError::KeycloakError(e.to_string()))?;
 
@@ -49,7 +49,7 @@ pub async fn get_current_user(
             display_name: user.display_name,
             profile_picture: user.profile_picture,
             status: user.status,
-            keycloak_id: user.keycloak_id,
+            sub: user.sub,
             username: keycloak_info.username,
             email: keycloak_info.email,
             first_name: keycloak_info.first_name,
@@ -63,7 +63,7 @@ pub async fn get_current_user(
             display_name: user.display_name,
             profile_picture: user.profile_picture,
             status: user.status,
-            keycloak_id: user.keycloak_id,
+            sub: user.sub,
         };
 
         Ok(Json(serde_json::to_value(basic_info).unwrap()))
@@ -85,7 +85,7 @@ pub async fn get_user_by_id(
         display_name: user.display_name,
         profile_picture: user.profile_picture,
         status: user.status,
-        keycloak_id: user.keycloak_id,
+        sub: user.sub,
     };
 
     Ok(Json(basic_info))
@@ -96,11 +96,11 @@ pub async fn update_current_user(
     State(state): State<Arc<AppState>>,
     Json(req): Json<UpdateUserRequest>,
 ) -> Result<Json<UserBasicInfo>, ApiError> {
-    let keycloak_id = claims.sub;
+    let sub = claims.sub;
 
     let user = state
         .user_repo
-        .get_user_by_keycloak_id(&keycloak_id)
+        .get_user_by_sub(&sub)
         .await?
         .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
 
@@ -111,7 +111,7 @@ pub async fn update_current_user(
         display_name: updated_user.display_name,
         profile_picture: updated_user.profile_picture,
         status: updated_user.status,
-        keycloak_id: updated_user.keycloak_id,
+        sub: updated_user.sub,
     };
 
     Ok(Json(basic_info))
@@ -122,17 +122,17 @@ pub async fn update_current_user_keycloak_info(
     State(state): State<Arc<AppState>>,
     Json(req): Json<UpdateKeycloakUserRequest>,
 ) -> Result<StatusCode, ApiError> {
-    let keycloak_id = claims.sub;
+    let sub = claims.sub;
 
     let user = state
         .user_repo
-        .get_user_by_keycloak_id(&keycloak_id)
+        .get_user_by_sub(&sub)
         .await?
         .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
 
     state
         .keycloak_service
-        .update_user_info(&user.keycloak_id, req)
+        .update_user_info(&user.sub, req)
         .await
         .map_err(|e| CoreError::KeycloakError(e.to_string()))?;
 
@@ -143,11 +143,11 @@ pub async fn get_current_user_settings(
     Extension(claims): Extension<Claims>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Setting>, ApiError> {
-    let keycloak_id = claims.sub;
+    let sub = claims.sub;
 
     let user = state
         .user_repo
-        .get_user_by_keycloak_id(&keycloak_id)
+        .get_user_by_sub(&sub)
         .await?
         .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
 
@@ -165,11 +165,11 @@ pub async fn update_current_user_settings(
     State(state): State<Arc<AppState>>,
     Json(req): Json<UpdateSettingRequest>,
 ) -> Result<Json<Setting>, ApiError> {
-    let keycloak_id = claims.sub;
+    let sub = claims.sub;
 
     let user = state
         .user_repo
-        .get_user_by_keycloak_id(&keycloak_id)
+        .get_user_by_sub(&sub)
         .await?
         .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
 

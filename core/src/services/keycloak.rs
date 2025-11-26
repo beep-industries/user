@@ -69,13 +69,13 @@ impl KeycloakService {
 
     pub async fn get_user_info(
         &self,
-        keycloak_id: &str,
+        sub: &str,
     ) -> Result<KeycloakUserInfo, Box<dyn std::error::Error + Send + Sync>> {
         let token = self.get_admin_token().await?;
 
         let user_url = format!(
             "{}/admin/realms/{}/users/{}",
-            self.base_url, self.realm, keycloak_id
+            self.base_url, self.realm, sub
         );
 
         let response = self
@@ -101,14 +101,14 @@ impl KeycloakService {
 
     pub async fn update_user_info(
         &self,
-        keycloak_id: &str,
+        sub: &str,
         update_req: UpdateKeycloakUserRequest,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let token = self.get_admin_token().await?;
 
         let user_url = format!(
             "{}/admin/realms/{}/users/{}",
-            self.base_url, self.realm, keycloak_id
+            self.base_url, self.realm, sub
         );
 
         let mut update_data = HashMap::new();
