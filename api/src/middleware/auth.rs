@@ -13,7 +13,7 @@ pub struct Claims {
     pub sub: String,
     pub exp: usize,
     pub iat: usize,
-    pub preferred_username: Option<String>,
+    pub preferred_display_name: Option<String>,
 }
 
 pub async fn auth_middleware(mut req: Request<Body>, next: Next) -> Result<Response, StatusCode> {

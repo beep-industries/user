@@ -15,12 +15,12 @@ impl UserRepository {
     pub async fn create_user(&self, req: CreateUserRequest) -> Result<User, sqlx::Error> {
         let user = sqlx::query_as::<_, User>(
             r#"
-            INSERT INTO users (username, profile_picture, keycloak_id)
+            INSERT INTO users (display_name, profile_picture, keycloak_id)
             VALUES ($1, $2, $3)
-            RETURNING id, username, profile_picture, status, keycloak_id, created_at, updated_at
+            RETURNING id, display_name, profile_picture, status, keycloak_id, created_at, updated_at
             "#,
         )
-        .bind(&req.username)
+        .bind(&req.display_name)
         .bind(&req.profile_picture)
         .bind(&req.keycloak_id)
         .fetch_one(&self.pool)
@@ -32,7 +32,7 @@ impl UserRepository {
     pub async fn get_user_by_id(&self, user_id: Uuid) -> Result<Option<User>, sqlx::Error> {
         let user = sqlx::query_as::<_, User>(
             r#"
-            SELECT id, username, profile_picture, status, keycloak_id, created_at, updated_at
+            SELECT id, display_name, profile_picture, status, keycloak_id, created_at, updated_at
             FROM users
             WHERE id = $1
             "#,
@@ -50,7 +50,7 @@ impl UserRepository {
     ) -> Result<Option<User>, sqlx::Error> {
         let user = sqlx::query_as::<_, User>(
             r#"
-            SELECT id, username, profile_picture, status, keycloak_id, created_at, updated_at
+            SELECT id, display_name, profile_picture, status, keycloak_id, created_at, updated_at
             FROM users
             WHERE keycloak_id = $1
             "#,
@@ -71,9 +71,9 @@ impl UserRepository {
         let mut bindings = Vec::new();
         let mut param_count = 1;
 
-        if let Some(username) = &req.username {
-            query.push_str(&format!(", username = ${}", param_count));
-            bindings.push(username.clone());
+        if let Some(display_name) = &req.display_name {
+            query.push_str(&format!(", display_name = ${}", param_count));
+            bindings.push(display_name.clone());
             param_count += 1;
         }
 
@@ -89,7 +89,7 @@ impl UserRepository {
             param_count += 1;
         }
 
-        query.push_str(&format!(" WHERE id = ${} RETURNING id, username, profile_picture, status, keycloak_id, created_at, updated_at", param_count));
+        query.push_str(&format!(" WHERE id = ${} RETURNING id, display_name, profile_picture, status, keycloak_id, created_at, updated_at", param_count));
 
         let mut q = sqlx::query_as::<_, User>(&query);
         for binding in bindings {

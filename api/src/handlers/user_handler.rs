@@ -46,10 +46,11 @@ pub async fn get_current_user(
 
         let full_info = UserFullInfo {
             id: user.id,
-            username: user.username,
+            display_name: user.display_name,
             profile_picture: user.profile_picture,
             status: user.status,
             keycloak_id: user.keycloak_id,
+            username: keycloak_info.username,
             email: keycloak_info.email,
             first_name: keycloak_info.first_name,
             last_name: keycloak_info.last_name,
@@ -59,7 +60,7 @@ pub async fn get_current_user(
     } else {
         let basic_info = UserBasicInfo {
             id: user.id,
-            username: user.username,
+            display_name: user.display_name,
             profile_picture: user.profile_picture,
             status: user.status,
             keycloak_id: user.keycloak_id,
@@ -81,7 +82,7 @@ pub async fn get_user_by_id(
 
     let basic_info = UserBasicInfo {
         id: user.id,
-        username: user.username,
+        display_name: user.display_name,
         profile_picture: user.profile_picture,
         status: user.status,
         keycloak_id: user.keycloak_id,
@@ -107,7 +108,7 @@ pub async fn update_current_user(
 
     let basic_info = UserBasicInfo {
         id: updated_user.id,
-        username: updated_user.username,
+        display_name: updated_user.display_name,
         profile_picture: updated_user.profile_picture,
         status: updated_user.status,
         keycloak_id: updated_user.keycloak_id,
