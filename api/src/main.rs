@@ -5,13 +5,13 @@ mod middleware;
 use crate::{
     handlers::{
         get_current_user, get_current_user_settings, get_user_by_id, update_current_user,
-        update_current_user_keycloak_info, update_current_user_settings, AppState,
+        update_current_user_settings, AppState,
     },
     middleware::auth_middleware,
 };
 use axum::{
     middleware as axum_middleware,
-    routing::{get, put},
+    routing::get,
     Router,
 };
 use clap::{Parser, Subcommand};
@@ -89,13 +89,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let protected_routes = Router::new()
                 .route("/users/me", get(get_current_user).put(update_current_user))
-                .route("/users/me/keycloak", put(update_current_user_keycloak_info))
                 .route(
                     "/users/me/settings",
                     get(get_current_user_settings).put(update_current_user_settings),
                 )
                 .route("/users/:user_id", get(get_user_by_id))
-                .layer(axum_middleware::from_fn(auth_middleware))
+                .layer(axum_middleware::from_fn_with_state(app_state.clone(), auth_middleware))
                 .with_state(app_state);
 
             let app = Router::new().merge(protected_routes).layer(cors);

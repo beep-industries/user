@@ -56,7 +56,7 @@ Retrieves the current authenticated user's information.
 
 ### PUT `/users/me`
 
-Updates the current authenticated user's profile.
+Updates the current authenticated user's profile. This endpoint handles both local database fields and Keycloak fields in a single transactional request.
 
 **Request Body:**
 
@@ -64,9 +64,15 @@ Updates the current authenticated user's profile.
 {
   "display_name": "string (optional)",
   "profile_picture": "string | null (optional)",
-  "status": "string (optional)"
+  "status": "string (optional)",
+  "username": "string (optional)",
+  "email": "string (optional)",
+  "first_name": "string (optional)",
+  "last_name": "string (optional)"
 }
 ```
+
+> **Note:** `display_name`, `profile_picture`, and `status` are stored locally. `username`, `email`, `first_name`, and `last_name` are updated in Keycloak. If Keycloak update fails, the local database is not modified.
 
 **Response:**
 
@@ -79,25 +85,6 @@ Updates the current authenticated user's profile.
   "sub": "string"
 }
 ```
-
----
-
-### PUT `/users/me/keycloak`
-
-Updates the current authenticated user's Keycloak information.
-
-**Request Body:**
-
-```json
-{
-  "username": "string (optional)",
-  "email": "string (optional)",
-  "first_name": "string (optional)",
-  "last_name": "string (optional)"
-}
-```
-
-**Response:** `200 OK` (no body)
 
 ---
 
@@ -208,13 +195,13 @@ curl -X GET "http://localhost:3000/users/me?full_info=true" \
   -H "Authorization: Bearer <token>"
 ```
 
-### Update profile
+### Update profile (local + Keycloak)
 
 ```bash
 curl -X PUT http://localhost:3000/users/me \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"display_name": "new_display_name", "status": "online"}'
+  -d '{"display_name": "new_display_name", "email": "newemail@example.com"}'
 ```
 
 ### Update parameters

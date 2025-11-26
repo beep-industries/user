@@ -6,7 +6,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct User {
     pub id: Uuid,
-    pub display_name: String,
+    pub display_name: Option<String>,
     pub profile_picture: Option<String>,
     pub status: String,
     pub sub: String,
@@ -27,7 +27,7 @@ pub struct Setting {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserBasicInfo {
     pub id: Uuid,
-    pub display_name: String,
+    pub display_name: Option<String>,
     pub profile_picture: Option<String>,
     pub status: String,
     pub sub: String,
@@ -44,7 +44,7 @@ pub struct KeycloakUserInfo {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserFullInfo {
     pub id: Uuid,
-    pub display_name: String,
+    pub display_name: Option<String>,
     pub profile_picture: Option<String>,
     pub status: String,
     pub sub: String,
@@ -56,24 +56,30 @@ pub struct UserFullInfo {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateUserRequest {
-    pub display_name: String,
-    pub profile_picture: Option<String>,
     pub sub: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateUserRequest {
+    // Local DB fields
     pub display_name: Option<String>,
     pub profile_picture: Option<String>,
     pub status: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateKeycloakUserRequest {
+    // Keycloak fields
     pub username: Option<String>,
     pub email: Option<String>,
     pub first_name: Option<String>,
     pub last_name: Option<String>,
+}
+
+impl UpdateUserRequest {
+    pub fn has_local_fields(&self) -> bool {
+        self.display_name.is_some() || self.profile_picture.is_some() || self.status.is_some()
+    }
+
+    pub fn has_keycloak_fields(&self) -> bool {
+        self.username.is_some() || self.email.is_some() || self.first_name.is_some() || self.last_name.is_some()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

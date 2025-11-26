@@ -1,22 +1,27 @@
+use crate::handlers::AppState;
 use axum::{
     body::Body,
-    extract::Request,
+    extract::{Request, State},
     http::{header::AUTHORIZATION, StatusCode},
     middleware::Next,
     response::Response,
 };
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
     pub sub: String,
     pub exp: usize,
     pub iat: usize,
-    pub preferred_display_name: Option<String>,
 }
 
-pub async fn auth_middleware(mut req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
+pub async fn auth_middleware(
+    State(state): State<Arc<AppState>>,
+    mut req: Request<Body>,
+    next: Next,
+) -> Result<Response, StatusCode> {
     let auth_header = req
         .headers()
         .get(AUTHORIZATION)
@@ -46,7 +51,18 @@ pub async fn auth_middleware(mut req: Request<Body>, next: Next) -> Result<Respo
         StatusCode::UNAUTHORIZED
     })?;
 
+    // Auto-create user if not exists (first connection after Keycloak registration)
+    let user = state
+        .user_repo
+        .get_or_create_user(&token_data.claims.sub)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to get or create user: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
     req.extensions_mut().insert(token_data.claims);
+    req.extensions_mut().insert(user);
 
     Ok(next.run(req).await)
 }

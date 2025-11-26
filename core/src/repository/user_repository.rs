@@ -1,4 +1,4 @@
-use crate::models::{CreateUserRequest, Setting, UpdateSettingRequest, UpdateUserRequest, User};
+use crate::models::{Setting, UpdateSettingRequest, UpdateUserRequest, User};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -12,17 +12,15 @@ impl UserRepository {
         Self { pool }
     }
 
-    pub async fn create_user(&self, req: CreateUserRequest) -> Result<User, sqlx::Error> {
+    pub async fn create_user(&self, sub: &str) -> Result<User, sqlx::Error> {
         let user = sqlx::query_as::<_, User>(
             r#"
-            INSERT INTO users (display_name, profile_picture, sub)
-            VALUES ($1, $2, $3)
+            INSERT INTO users (sub)
+            VALUES ($1)
             RETURNING id, display_name, profile_picture, status, sub, created_at, updated_at
             "#,
         )
-        .bind(&req.display_name)
-        .bind(&req.profile_picture)
-        .bind(&req.sub)
+        .bind(sub)
         .fetch_one(&self.pool)
         .await?;
 
@@ -60,6 +58,13 @@ impl UserRepository {
         .await?;
 
         Ok(user)
+    }
+
+    pub async fn get_or_create_user(&self, sub: &str) -> Result<User, sqlx::Error> {
+        if let Some(user) = self.get_user_by_sub(sub).await? {
+            return Ok(user);
+        }
+        self.create_user(sub).await
     }
 
     pub async fn update_user(

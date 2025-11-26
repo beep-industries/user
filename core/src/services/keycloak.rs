@@ -1,4 +1,4 @@
-use crate::models::{KeycloakUserInfo, UpdateKeycloakUserRequest};
+use crate::models::{KeycloakUserInfo, UpdateUserRequest};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -102,7 +102,7 @@ impl KeycloakService {
     pub async fn update_user_info(
         &self,
         sub: &str,
-        update_req: UpdateKeycloakUserRequest,
+        update_req: &UpdateUserRequest,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let token = self.get_admin_token().await?;
 
@@ -112,16 +112,16 @@ impl KeycloakService {
         );
 
         let mut update_data = HashMap::new();
-        if let Some(username) = update_req.username {
+        if let Some(username) = &update_req.username {
             update_data.insert("username", serde_json::json!(username));
         }
-        if let Some(email) = update_req.email {
+        if let Some(email) = &update_req.email {
             update_data.insert("email", serde_json::json!(email));
         }
-        if let Some(first_name) = update_req.first_name {
+        if let Some(first_name) = &update_req.first_name {
             update_data.insert("firstName", serde_json::json!(first_name));
         }
-        if let Some(last_name) = update_req.last_name {
+        if let Some(last_name) = &update_req.last_name {
             update_data.insert("lastName", serde_json::json!(last_name));
         }
 

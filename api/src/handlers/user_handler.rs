@@ -1,14 +1,13 @@
-use crate::{error::ApiError, middleware::Claims};
+use crate::error::ApiError;
 use axum::{
     extract::{Extension, Path, Query, State},
-    http::StatusCode,
     Json,
 };
 use serde::Deserialize;
 use std::sync::Arc;
 use user_core::{
-    CoreError, KeycloakService, Setting, UpdateKeycloakUserRequest, UpdateSettingRequest,
-    UpdateUserRequest, UserBasicInfo, UserFullInfo, UserRepository,
+    CoreError, KeycloakService, Setting, UpdateSettingRequest,
+    UpdateUserRequest, User, UserBasicInfo, UserFullInfo, UserRepository,
 };
 use uuid::Uuid;
 
@@ -25,22 +24,15 @@ pub struct FullInfoQuery {
 }
 
 pub async fn get_current_user(
-    Extension(claims): Extension<Claims>,
+    Extension(user): Extension<User>,
     Query(query): Query<FullInfoQuery>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    let sub = claims.sub;
-
-    let user = state
-        .user_repo
-        .get_user_by_sub(&sub)
-        .await?
-        .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
 
     if query.full_info {
         let keycloak_info = state
             .keycloak_service
-            .get_user_info(&sub)
+            .get_user_info(&user.sub)
             .await
             .map_err(|e| CoreError::KeycloakError(e.to_string()))?;
 
@@ -92,19 +84,26 @@ pub async fn get_user_by_id(
 }
 
 pub async fn update_current_user(
-    Extension(claims): Extension<Claims>,
+    Extension(user): Extension<User>,
     State(state): State<Arc<AppState>>,
     Json(req): Json<UpdateUserRequest>,
 ) -> Result<Json<UserBasicInfo>, ApiError> {
-    let sub = claims.sub;
 
-    let user = state
-        .user_repo
-        .get_user_by_sub(&sub)
-        .await?
-        .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
+    // Update Keycloak first (if it fails, we don't touch the local DB)
+    if req.has_keycloak_fields() {
+        state
+            .keycloak_service
+            .update_user_info(&user.sub, &req)
+            .await
+            .map_err(|e| CoreError::KeycloakError(e.to_string()))?;
+    }
 
-    let updated_user = state.user_repo.update_user(user.id, req).await?;
+    // Update local DB
+    let updated_user = if req.has_local_fields() {
+        state.user_repo.update_user(user.id, req).await?
+    } else {
+        user
+    };
 
     let basic_info = UserBasicInfo {
         id: updated_user.id,
@@ -117,39 +116,10 @@ pub async fn update_current_user(
     Ok(Json(basic_info))
 }
 
-pub async fn update_current_user_keycloak_info(
-    Extension(claims): Extension<Claims>,
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<UpdateKeycloakUserRequest>,
-) -> Result<StatusCode, ApiError> {
-    let sub = claims.sub;
-
-    let user = state
-        .user_repo
-        .get_user_by_sub(&sub)
-        .await?
-        .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
-
-    state
-        .keycloak_service
-        .update_user_info(&user.sub, req)
-        .await
-        .map_err(|e| CoreError::KeycloakError(e.to_string()))?;
-
-    Ok(StatusCode::OK)
-}
-
 pub async fn get_current_user_settings(
-    Extension(claims): Extension<Claims>,
+    Extension(user): Extension<User>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Setting>, ApiError> {
-    let sub = claims.sub;
-
-    let user = state
-        .user_repo
-        .get_user_by_sub(&sub)
-        .await?
-        .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
 
     let setting = state
         .user_repo
@@ -161,18 +131,10 @@ pub async fn get_current_user_settings(
 }
 
 pub async fn update_current_user_settings(
-    Extension(claims): Extension<Claims>,
+    Extension(user): Extension<User>,
     State(state): State<Arc<AppState>>,
     Json(req): Json<UpdateSettingRequest>,
 ) -> Result<Json<Setting>, ApiError> {
-    let sub = claims.sub;
-
-    let user = state
-        .user_repo
-        .get_user_by_sub(&sub)
-        .await?
-        .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
-
     let setting = state.user_repo.update_setting(user.id, req).await?;
 
     Ok(Json(setting))
