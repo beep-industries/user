@@ -13,11 +13,12 @@ struct KeycloakTokenResponse {
 #[derive(Debug, Serialize, Deserialize)]
 struct KeycloakUser {
     id: String,
-    email: Option<String>,
+    username: String,
+    email: String,
     #[serde(rename = "firstName")]
-    first_name: Option<String>,
+    first_name: String,
     #[serde(rename = "lastName")]
-    last_name: Option<String>,
+    last_name: String,
 }
 
 #[derive(Clone)]
@@ -91,6 +92,7 @@ impl KeycloakService {
         let keycloak_user: KeycloakUser = response.json().await?;
 
         Ok(KeycloakUserInfo {
+            username: keycloak_user.username,
             email: keycloak_user.email,
             first_name: keycloak_user.first_name,
             last_name: keycloak_user.last_name,
@@ -110,6 +112,9 @@ impl KeycloakService {
         );
 
         let mut update_data = HashMap::new();
+        if let Some(username) = update_req.username {
+            update_data.insert("username", serde_json::json!(username));
+        }
         if let Some(email) = update_req.email {
             update_data.insert("email", serde_json::json!(email));
         }

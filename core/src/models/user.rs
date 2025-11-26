@@ -6,7 +6,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct User {
     pub id: Uuid,
-    pub username: String,
+    pub display_name: String,
     pub profile_picture: Option<String>,
     pub status: String,
     pub keycloak_id: String,
@@ -27,7 +27,7 @@ pub struct Setting {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserBasicInfo {
     pub id: Uuid,
-    pub username: String,
+    pub display_name: String,
     pub profile_picture: Option<String>,
     pub status: String,
     pub keycloak_id: String,
@@ -35,39 +35,42 @@ pub struct UserBasicInfo {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeycloakUserInfo {
-    pub email: Option<String>,
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
+    pub username: String,
+    pub email: String,
+    pub first_name: String,
+    pub last_name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserFullInfo {
     pub id: Uuid,
-    pub username: String,
+    pub display_name: String,
     pub profile_picture: Option<String>,
     pub status: String,
     pub keycloak_id: String,
-    pub email: Option<String>,
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
+    pub username: String,
+    pub email: String,
+    pub first_name: String,
+    pub last_name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateUserRequest {
-    pub username: String,
+    pub display_name: String,
     pub profile_picture: Option<String>,
     pub keycloak_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateUserRequest {
-    pub username: Option<String>,
+    pub display_name: Option<String>,
     pub profile_picture: Option<String>,
     pub status: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateKeycloakUserRequest {
+    pub username: Option<String>,
     pub email: Option<String>,
     pub first_name: Option<String>,
     pub last_name: Option<String>,
