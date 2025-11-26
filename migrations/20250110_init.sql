@@ -1,7 +1,7 @@
--- CUsers table
+-- Users table
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    display_name VARCHAR(255) NOT NULL UNIQUE,
+    display_name VARCHAR(255),
     profile_picture VARCHAR(500),
     status VARCHAR(50) NOT NULL DEFAULT 'active',
     sub VARCHAR(255) NOT NULL UNIQUE,
