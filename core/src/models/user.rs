@@ -9,7 +9,7 @@ pub struct User {
     pub display_name: String,
     pub profile_picture: Option<String>,
     pub status: String,
-    pub keycloak_id: String,
+    pub sub: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -30,7 +30,7 @@ pub struct UserBasicInfo {
     pub display_name: String,
     pub profile_picture: Option<String>,
     pub status: String,
-    pub keycloak_id: String,
+    pub sub: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,7 +47,7 @@ pub struct UserFullInfo {
     pub display_name: String,
     pub profile_picture: Option<String>,
     pub status: String,
-    pub keycloak_id: String,
+    pub sub: String,
     pub username: String,
     pub email: String,
     pub first_name: String,
@@ -58,7 +58,7 @@ pub struct UserFullInfo {
 pub struct CreateUserRequest {
     pub display_name: String,
     pub profile_picture: Option<String>,
-    pub keycloak_id: String,
+    pub sub: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
