@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16.2
     container_name: user-service-db
     environment:
       POSTGRES_DB: userservice_db
@@ -12,13 +10,10 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U userservice -d userservice_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
-      - user-network
+      user-network:
+        aliases:
+          - user-db
 
   user-api:
     build:
@@ -27,20 +22,17 @@ services:
       target: api
     container_name: user-api
     environment:
-      DATABASE_URL: postgres://userservice:userservice_password@postgres:5432/userservice_db
+      DATABASE_URL: postgres://userservice:userservice_password@user-db:5432/userservice_db
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 3000
-      KEYCLOAK_URL: http://keycloak:8080
-      KEYCLOAK_REALM: myrealm
-      KEYCLOAK_CLIENT_ID: user-service
+      KEYCLOAK_URL: ${KEYCLOAK_URL}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-your-client-secret}
       JWT_SECRET: ${JWT_SECRET:-your-jwt-secret-key}
       RUST_LOG: info
     ports:
       - "3000:3000"
-    depends_on:
-      postgres:
-        condition: service_healthy
     networks:
       - user-network
       - keycloak_network

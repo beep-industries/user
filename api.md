@@ -22,14 +22,14 @@ Retrieves the current authenticated user's information.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `full_info` | boolean | `false` | If `true`, includes Keycloak data (email, first name, last name) |
+| `full_info` | boolean | `false` | If `true`, includes Keycloak data (username, email, first name, last name) |
 
 **Response (basic):**
 
 ```json
 {
   "id": "uuid",
-  "username": "string",
+  "display_name": "string",
   "profile_picture": "string | null",
   "status": "string",
   "keycloak_id": "string"
@@ -41,13 +41,14 @@ Retrieves the current authenticated user's information.
 ```json
 {
   "id": "uuid",
-  "username": "string",
+  "display_name": "string",
   "profile_picture": "string | null",
   "status": "string",
   "keycloak_id": "string",
-  "email": "string | null",
-  "first_name": "string | null",
-  "last_name": "string | null"
+  "username": "string",
+  "email": "string",
+  "first_name": "string",
+  "last_name": "string"
 }
 ```
 
@@ -61,7 +62,7 @@ Updates the current authenticated user's profile.
 
 ```json
 {
-  "username": "string (optional)",
+  "display_name": "string (optional)",
   "profile_picture": "string | null (optional)",
   "status": "string (optional)"
 }
@@ -72,7 +73,7 @@ Updates the current authenticated user's profile.
 ```json
 {
   "id": "uuid",
-  "username": "string",
+  "display_name": "string",
   "profile_picture": "string | null",
   "status": "string",
   "keycloak_id": "string"
@@ -89,6 +90,7 @@ Updates the current authenticated user's Keycloak information.
 
 ```json
 {
+  "username": "string (optional)",
   "email": "string (optional)",
   "first_name": "string (optional)",
   "last_name": "string (optional)"
@@ -161,7 +163,7 @@ Retrieves a specific user's information by their ID.
 ```json
 {
   "id": "uuid",
-  "username": "string",
+  "display_name": "string",
   "profile_picture": "string | null",
   "status": "string",
   "keycloak_id": "string"
@@ -212,7 +214,7 @@ curl -X GET "http://localhost:3000/users/me?full_info=true" \
 curl -X PUT http://localhost:3000/users/me \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"username": "new_username", "status": "online"}'
+  -d '{"display_name": "new_display_name", "status": "online"}'
 ```
 
 ### Update parameters

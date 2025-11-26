@@ -1,7 +1,7 @@
 -- CUsers table
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    username VARCHAR(255) NOT NULL UNIQUE,
+    display_name VARCHAR(255) NOT NULL UNIQUE,
     profile_picture VARCHAR(500),
     status VARCHAR(50) NOT NULL DEFAULT 'active',
     keycloak_id VARCHAR(255) NOT NULL UNIQUE,
@@ -22,5 +22,5 @@ CREATE TABLE IF NOT EXISTS param (
 
 -- Create indexes
 CREATE INDEX idx_users_keycloak_id ON users(keycloak_id);
-CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_users_display_name ON users(display_name);
 CREATE INDEX idx_param_user_id ON param(user_id);
