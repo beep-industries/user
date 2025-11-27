@@ -139,6 +139,10 @@ pub async fn auth_middleware(
     })?;
 
     // Auto-create user if not exists (first connection after Keycloak registration)
+    // TODO: This is not ideal - we're making a DB call on every request.
+    // This should be refactored to use a cache or session-based approach to avoid
+    // the performance overhead of checking user existence on each authenticated request.
+    // For now, we accept this trade-off for simplicity.
     let user = state
         .user_repo
         .get_or_create_user(&token_data.claims.sub)
