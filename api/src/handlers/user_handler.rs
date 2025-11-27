@@ -1,4 +1,5 @@
 use crate::error::ApiError;
+use crate::middleware::JwksCache;
 use axum::{
     extract::{Extension, Path, Query, State},
     Json,
@@ -15,6 +16,7 @@ use uuid::Uuid;
 pub struct AppState {
     pub user_repo: UserRepository,
     pub keycloak_service: KeycloakService,
+    pub jwks_cache: JwksCache,
 }
 
 #[derive(Deserialize)]
