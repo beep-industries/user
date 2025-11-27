@@ -25,6 +25,7 @@ serde_json = "1.0"
 
 # Authentication
 jsonwebtoken = "9.3"
+reqwest = { version = "0.12", features = ["json"] }
 
 # Logging
 tracing = "0.1"

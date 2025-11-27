@@ -2482,6 +2482,7 @@ dependencies = [
  "clap",
  "config",
  "jsonwebtoken",
+ "reqwest",
  "serde",
  "serde_json",
  "sqlx",

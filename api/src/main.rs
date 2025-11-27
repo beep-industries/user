@@ -7,7 +7,7 @@ use crate::{
         get_current_user, get_current_user_settings, get_user_by_id, update_current_user,
         update_current_user_settings, AppState,
     },
-    middleware::auth_middleware,
+    middleware::{auth_middleware, JwksCache},
 };
 use axum::{
     middleware as axum_middleware,
@@ -70,8 +70,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             tracing::info!("Initializing services...");
             let user_repo = UserRepository::new(pool);
+            let jwks_cache = JwksCache::new(&config.keycloak_internal_url, &config.keycloak_realm);
             let keycloak_service = KeycloakService::new(
-                config.keycloak_url,
+                config.keycloak_internal_url,
                 config.keycloak_realm,
                 config.keycloak_client_id,
                 config.keycloak_client_secret,
@@ -80,6 +81,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let app_state = Arc::new(AppState {
                 user_repo,
                 keycloak_service,
+                jwks_cache,
             });
 
             let cors = CorsLayer::new()
