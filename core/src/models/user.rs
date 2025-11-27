@@ -3,7 +3,11 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
+#[cfg(feature = "openapi")]
+use utoipa::ToSchema;
+
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct User {
     pub id: Uuid,
     pub display_name: Option<String>,
@@ -15,6 +19,7 @@ pub struct User {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct Setting {
     pub id: Uuid,
     pub user_id: Uuid,
@@ -25,6 +30,7 @@ pub struct Setting {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct UserBasicInfo {
     pub id: Uuid,
     pub display_name: Option<String>,
@@ -34,6 +40,7 @@ pub struct UserBasicInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct KeycloakUserInfo {
     pub username: String,
     pub email: String,
@@ -42,6 +49,7 @@ pub struct KeycloakUserInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct UserFullInfo {
     pub id: Uuid,
     pub display_name: Option<String>,
@@ -55,20 +63,27 @@ pub struct UserFullInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct CreateUserRequest {
     pub sub: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct UpdateUserRequest {
-    // Local DB fields
+    /// Display name (stored in User Service Database)
     pub display_name: Option<String>,
+    /// Profile picture URL (stored in User Service Database)
     pub profile_picture: Option<String>,
+    /// User status (stored in User Service Database)
     pub status: Option<String>,
-    // Keycloak fields
+    /// Username (stored in Keycloak Database)
     pub username: Option<String>,
+    /// Email address (stored in Keycloak Database)
     pub email: Option<String>,
+    /// First name (stored in Keycloak Database)
     pub first_name: Option<String>,
+    /// Last name (stored in Keycloak Database)
     pub last_name: Option<String>,
 }
 
@@ -83,7 +98,10 @@ impl UpdateUserRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct UpdateSettingRequest {
+    /// Theme preference (e.g., "dark", "light")
     pub theme: Option<String>,
+    /// Language preference (e.g., "en", "fr")
     pub lang: Option<String>,
 }

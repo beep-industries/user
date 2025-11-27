@@ -138,6 +138,12 @@ docker compose up -d user-api              # Start API only
 
 The service will be available at http://localhost:3000
 
+### API Documentation
+
+Interactive API documentation is available via Scalar at:
+
+**http://localhost:3000/docs**
+
 ## CLI Commands
 
 The `user-api` binary supports the following commands:

@@ -6,6 +6,7 @@ use axum::{
 };
 use serde::Deserialize;
 use std::sync::Arc;
+use utoipa::IntoParams;
 use user_core::{
     CoreError, KeycloakService, Setting, UpdateSettingRequest,
     UpdateUserRequest, User, UserBasicInfo, UserFullInfo, UserRepository,
@@ -19,12 +20,27 @@ pub struct AppState {
     pub jwks_cache: JwksCache,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
 pub struct FullInfoQuery {
+    /// If true, includes Keycloak data (username, email, first name, last name)
     #[serde(default)]
     pub full_info: bool,
 }
 
+#[utoipa::path(
+    get,
+    path = "/users/me",
+    tag = "users",
+    params(FullInfoQuery),
+    responses(
+        (status = 200, description = "User information retrieved successfully", body = UserBasicInfo),
+        (status = 401, description = "Unauthorized - Invalid or missing JWT token"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_current_user(
     Extension(user): Extension<User>,
     Query(query): Query<FullInfoQuery>,
@@ -64,6 +80,23 @@ pub async fn get_current_user(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/users/{user_id}",
+    tag = "users",
+    params(
+        ("user_id" = Uuid, Path, description = "User UUID")
+    ),
+    responses(
+        (status = 200, description = "User information retrieved successfully", body = UserBasicInfo),
+        (status = 401, description = "Unauthorized - Invalid or missing JWT token"),
+        (status = 404, description = "User not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_user_by_id(
     Path(user_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
@@ -85,6 +118,21 @@ pub async fn get_user_by_id(
     Ok(Json(basic_info))
 }
 
+#[utoipa::path(
+    put,
+    path = "/users/me",
+    tag = "users",
+    request_body = UpdateUserRequest,
+    responses(
+        (status = 200, description = "User updated successfully", body = UserBasicInfo),
+        (status = 400, description = "Bad request - Invalid input"),
+        (status = 401, description = "Unauthorized - Invalid or missing JWT token"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn update_current_user(
     Extension(user): Extension<User>,
     State(state): State<Arc<AppState>>,
@@ -118,6 +166,20 @@ pub async fn update_current_user(
     Ok(Json(basic_info))
 }
 
+#[utoipa::path(
+    get,
+    path = "/users/me/settings",
+    tag = "settings",
+    responses(
+        (status = 200, description = "User settings retrieved successfully", body = Setting),
+        (status = 401, description = "Unauthorized - Invalid or missing JWT token"),
+        (status = 404, description = "Settings not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_current_user_settings(
     Extension(user): Extension<User>,
     State(state): State<Arc<AppState>>,
@@ -132,6 +194,21 @@ pub async fn get_current_user_settings(
     Ok(Json(setting))
 }
 
+#[utoipa::path(
+    put,
+    path = "/users/me/settings",
+    tag = "settings",
+    request_body = UpdateSettingRequest,
+    responses(
+        (status = 200, description = "User settings updated successfully", body = Setting),
+        (status = 400, description = "Bad request - Invalid input"),
+        (status = 401, description = "Unauthorized - Invalid or missing JWT token"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn update_current_user_settings(
     Extension(user): Extension<User>,
     State(state): State<Arc<AppState>>,
