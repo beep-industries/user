@@ -1,6 +1,7 @@
 mod error;
 mod handlers;
 mod middleware;
+mod openapi;
 
 use crate::{
     handlers::{
@@ -8,6 +9,7 @@ use crate::{
         update_current_user_settings, AppState,
     },
     middleware::{auth_middleware, JwksCache},
+    openapi::ApiDoc,
 };
 use axum::{
     middleware as axum_middleware,
@@ -19,6 +21,8 @@ use config::Config;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
+use utoipa::OpenApi;
+use utoipa_scalar::{Scalar, Servable};
 use user_core::{KeycloakService, UserRepository};
 
 #[derive(Parser)]
@@ -99,7 +103,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .layer(axum_middleware::from_fn_with_state(app_state.clone(), auth_middleware))
                 .with_state(app_state);
 
-            let app = Router::new().merge(protected_routes).layer(cors);
+            // Public routes (no authentication required)
+            let public_routes = Router::new()
+                .merge(Scalar::with_url("/docs", ApiDoc::openapi()));
+
+            let app = Router::new()
+                .merge(public_routes)
+                .merge(protected_routes)
+                .layer(cors);
 
             let addr = format!("{}:{}", config.server_host, config.server_port);
             tracing::info!("Server listening on {}", addr);

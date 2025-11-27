@@ -37,6 +37,10 @@ uuid = { version = "1.11", features = ["serde", "v4"] }
 # CLI
 clap = { version = "4.5", features = ["derive"] }
 
+# OpenAPI & Documentation
+utoipa = { version = "5.3", features = ["axum_extras", "uuid"] }
+utoipa-scalar = { version = "0.2", features = ["axum"] }
+
 # Workspace dependencies
 config = { path = "../libs/config" }
-user-core = { path = "../core" }
+user-core = { path = "../core", features = ["openapi"] }
