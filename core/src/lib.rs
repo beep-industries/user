@@ -5,5 +5,5 @@ pub mod services;
 
 pub use error::CoreError;
 pub use models::*;
-pub use repository::UserRepository;
+pub use repository::{PostgresUserRepository, UserRepository};
 pub use services::KeycloakService;

@@ -23,7 +23,7 @@ use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
-use user_core::{KeycloakService, UserRepository};
+use user_core::{KeycloakService, PostgresUserRepository};
 
 #[derive(Parser)]
 #[command(name = "user-service")]
@@ -73,7 +73,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .await?;
 
             tracing::info!("Initializing services...");
-            let user_repo = UserRepository::new(pool);
+            let user_repo = PostgresUserRepository::new(pool);
             let jwks_cache = JwksCache::new(&config.keycloak_internal_url, &config.keycloak_realm);
             let keycloak_service = KeycloakService::new(
                 config.keycloak_internal_url,

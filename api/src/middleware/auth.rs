@@ -8,9 +8,10 @@ use axum::{
 };
 use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use std::collections::HashMap;
+use user_core::UserRepository;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
