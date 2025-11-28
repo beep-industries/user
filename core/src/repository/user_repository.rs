@@ -1,18 +1,32 @@
 use crate::models::{Setting, UpdateSettingRequest, UpdateUserRequest, User};
 use sqlx::PgPool;
+use std::future::Future;
 use uuid::Uuid;
 
+pub trait UserRepository: Send + Sync {
+    fn create_user(&self, sub: &str) -> impl Future<Output = Result<User, sqlx::Error>> + Send;
+    fn get_user_by_id(&self, user_id: Uuid) -> impl Future<Output = Result<Option<User>, sqlx::Error>> + Send;
+    fn get_user_by_sub(&self, sub: &str) -> impl Future<Output = Result<Option<User>, sqlx::Error>> + Send;
+    fn get_or_create_user(&self, sub: &str) -> impl Future<Output = Result<User, sqlx::Error>> + Send;
+    fn update_user(&self, user_id: Uuid, req: UpdateUserRequest) -> impl Future<Output = Result<User, sqlx::Error>> + Send;
+    fn get_setting_by_user_id(&self, user_id: Uuid) -> impl Future<Output = Result<Option<Setting>, sqlx::Error>> + Send;
+    fn create_setting(&self, user_id: Uuid) -> impl Future<Output = Result<Setting, sqlx::Error>> + Send;
+    fn update_setting(&self, user_id: Uuid, req: UpdateSettingRequest) -> impl Future<Output = Result<Setting, sqlx::Error>> + Send;
+}
+
 #[derive(Clone)]
-pub struct UserRepository {
+pub struct PostgresUserRepository {
     pool: PgPool,
 }
 
-impl UserRepository {
+impl PostgresUserRepository {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
+}
 
-    pub async fn create_user(&self, sub: &str) -> Result<User, sqlx::Error> {
+impl UserRepository for PostgresUserRepository {
+    async fn create_user(&self, sub: &str) -> Result<User, sqlx::Error> {
         let user = sqlx::query_as::<_, User>(
             r#"
             INSERT INTO users (sub)
@@ -27,7 +41,7 @@ impl UserRepository {
         Ok(user)
     }
 
-    pub async fn get_user_by_id(&self, user_id: Uuid) -> Result<Option<User>, sqlx::Error> {
+    async fn get_user_by_id(&self, user_id: Uuid) -> Result<Option<User>, sqlx::Error> {
         let user = sqlx::query_as::<_, User>(
             r#"
             SELECT id, display_name, profile_picture, status, sub, created_at, updated_at
@@ -42,10 +56,7 @@ impl UserRepository {
         Ok(user)
     }
 
-    pub async fn get_user_by_sub(
-        &self,
-        sub: &str,
-    ) -> Result<Option<User>, sqlx::Error> {
+    async fn get_user_by_sub(&self, sub: &str) -> Result<Option<User>, sqlx::Error> {
         let user = sqlx::query_as::<_, User>(
             r#"
             SELECT id, display_name, profile_picture, status, sub, created_at, updated_at
@@ -60,18 +71,14 @@ impl UserRepository {
         Ok(user)
     }
 
-    pub async fn get_or_create_user(&self, sub: &str) -> Result<User, sqlx::Error> {
+    async fn get_or_create_user(&self, sub: &str) -> Result<User, sqlx::Error> {
         if let Some(user) = self.get_user_by_sub(sub).await? {
             return Ok(user);
         }
         self.create_user(sub).await
     }
 
-    pub async fn update_user(
-        &self,
-        user_id: Uuid,
-        req: UpdateUserRequest,
-    ) -> Result<User, sqlx::Error> {
+    async fn update_user(&self, user_id: Uuid, req: UpdateUserRequest) -> Result<User, sqlx::Error> {
         let mut query = String::from("UPDATE users SET updated_at = NOW()");
         let mut bindings = Vec::new();
         let mut param_count = 1;
@@ -94,7 +101,10 @@ impl UserRepository {
             param_count += 1;
         }
 
-        query.push_str(&format!(" WHERE id = ${} RETURNING id, display_name, profile_picture, status, sub, created_at, updated_at", param_count));
+        query.push_str(&format!(
+            " WHERE id = ${} RETURNING id, display_name, profile_picture, status, sub, created_at, updated_at",
+            param_count
+        ));
 
         let mut q = sqlx::query_as::<_, User>(&query);
         for binding in bindings {
@@ -107,7 +117,7 @@ impl UserRepository {
         Ok(user)
     }
 
-    pub async fn get_setting_by_user_id(&self, user_id: Uuid) -> Result<Option<Setting>, sqlx::Error> {
+    async fn get_setting_by_user_id(&self, user_id: Uuid) -> Result<Option<Setting>, sqlx::Error> {
         let setting = sqlx::query_as::<_, Setting>(
             r#"
             SELECT id, user_id, theme, lang, created_at, updated_at
@@ -122,7 +132,7 @@ impl UserRepository {
         Ok(setting)
     }
 
-    pub async fn create_setting(&self, user_id: Uuid) -> Result<Setting, sqlx::Error> {
+    async fn create_setting(&self, user_id: Uuid) -> Result<Setting, sqlx::Error> {
         let setting = sqlx::query_as::<_, Setting>(
             r#"
             INSERT INTO param (user_id)
@@ -137,11 +147,7 @@ impl UserRepository {
         Ok(setting)
     }
 
-    pub async fn update_setting(
-        &self,
-        user_id: Uuid,
-        req: UpdateSettingRequest,
-    ) -> Result<Setting, sqlx::Error> {
+    async fn update_setting(&self, user_id: Uuid, req: UpdateSettingRequest) -> Result<Setting, sqlx::Error> {
         let mut query = String::from("UPDATE param SET updated_at = NOW()");
         let mut bindings = Vec::new();
         let mut bind_count = 1;
@@ -158,7 +164,10 @@ impl UserRepository {
             bind_count += 1;
         }
 
-        query.push_str(&format!(" WHERE user_id = ${} RETURNING id, user_id, theme, lang, created_at, updated_at", bind_count));
+        query.push_str(&format!(
+            " WHERE user_id = ${} RETURNING id, user_id, theme, lang, created_at, updated_at",
+            bind_count
+        ));
 
         let mut q = sqlx::query_as::<_, Setting>(&query);
         for binding in bindings {

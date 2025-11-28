@@ -8,14 +8,14 @@ use serde::Deserialize;
 use std::sync::Arc;
 use utoipa::IntoParams;
 use user_core::{
-    CoreError, KeycloakService, Setting, UpdateSettingRequest,
+    CoreError, KeycloakService, PostgresUserRepository, Setting, UpdateSettingRequest,
     UpdateUserRequest, User, UserBasicInfo, UserFullInfo, UserRepository,
 };
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub user_repo: UserRepository,
+    pub user_repo: PostgresUserRepository,
     pub keycloak_service: KeycloakService,
     pub jwks_cache: JwksCache,
 }
