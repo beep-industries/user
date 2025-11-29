@@ -23,7 +23,7 @@ use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
-use user_core::{KeycloakService, PostgresUserRepository};
+use user_core::{KeycloakService, PostgresUserRepository, UserServiceImpl};
 
 #[derive(Parser)]
 #[command(name = "user-service")]
@@ -81,10 +81,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 config.keycloak_client_id,
                 config.keycloak_client_secret,
             );
+            let user_service = UserServiceImpl::new(user_repo, keycloak_service);
 
             let app_state = Arc::new(AppState {
-                user_repo,
-                keycloak_service,
+                user_service,
                 jwks_cache,
             });
 

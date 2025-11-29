@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use user_core::UserRepository;
+use user_core::UserService;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
@@ -145,7 +145,7 @@ pub async fn auth_middleware(
     // the performance overhead of checking user existence on each authenticated request.
     // For now, we accept this trade-off for simplicity.
     let user = state
-        .user_repo
+        .user_service
         .get_or_create_user(&token_data.claims.sub)
         .await
         .map_err(|e| {

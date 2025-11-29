@@ -8,15 +8,14 @@ use serde::Deserialize;
 use std::sync::Arc;
 use utoipa::IntoParams;
 use user_core::{
-    CoreError, KeycloakService, PostgresUserRepository, Setting, UpdateSettingRequest,
-    UpdateUserRequest, User, UserBasicInfo, UserFullInfo, UserRepository,
+    PostgresUserRepository, Setting, UpdateSettingRequest, UpdateUserRequest, User, UserBasicInfo,
+    UserFullInfo, UserService, UserServiceImpl,
 };
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub user_repo: PostgresUserRepository,
-    pub keycloak_service: KeycloakService,
+    pub user_service: UserServiceImpl<PostgresUserRepository>,
     pub jwks_cache: JwksCache,
 }
 
@@ -46,26 +45,8 @@ pub async fn get_current_user(
     Query(query): Query<FullInfoQuery>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-
     if query.full_info {
-        let keycloak_info = state
-            .keycloak_service
-            .get_user_info(&user.sub)
-            .await
-            .map_err(|e| CoreError::KeycloakError(e.to_string()))?;
-
-        let full_info = UserFullInfo {
-            id: user.id,
-            display_name: user.display_name,
-            profile_picture: user.profile_picture,
-            status: user.status,
-            sub: user.sub,
-            username: keycloak_info.username,
-            email: keycloak_info.email,
-            first_name: keycloak_info.first_name,
-            last_name: keycloak_info.last_name,
-        };
-
+        let full_info: UserFullInfo = state.user_service.get_user_full_info(&user).await?;
         Ok(Json(serde_json::to_value(full_info).unwrap()))
     } else {
         let basic_info = UserBasicInfo {
@@ -75,7 +56,6 @@ pub async fn get_current_user(
             status: user.status,
             sub: user.sub,
         };
-
         Ok(Json(serde_json::to_value(basic_info).unwrap()))
     }
 }
@@ -101,21 +81,8 @@ pub async fn get_user_by_id(
     Path(user_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<UserBasicInfo>, ApiError> {
-    let user = state
-        .user_repo
-        .get_user_by_id(user_id)
-        .await?
-        .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
-
-    let basic_info = UserBasicInfo {
-        id: user.id,
-        display_name: user.display_name,
-        profile_picture: user.profile_picture,
-        status: user.status,
-        sub: user.sub,
-    };
-
-    Ok(Json(basic_info))
+    let user = state.user_service.get_user_by_id(user_id).await?;
+    Ok(Json(user))
 }
 
 #[utoipa::path(
@@ -138,32 +105,8 @@ pub async fn update_current_user(
     State(state): State<Arc<AppState>>,
     Json(req): Json<UpdateUserRequest>,
 ) -> Result<Json<UserBasicInfo>, ApiError> {
-
-    // Update Keycloak first (if it fails, we don't touch the local DB)
-    if req.has_keycloak_fields() {
-        state
-            .keycloak_service
-            .update_user_info(&user.sub, &req)
-            .await
-            .map_err(|e| CoreError::KeycloakError(e.to_string()))?;
-    }
-
-    // Update local DB
-    let updated_user = if req.has_local_fields() {
-        state.user_repo.update_user(user.id, req).await?
-    } else {
-        user
-    };
-
-    let basic_info = UserBasicInfo {
-        id: updated_user.id,
-        display_name: updated_user.display_name,
-        profile_picture: updated_user.profile_picture,
-        status: updated_user.status,
-        sub: updated_user.sub,
-    };
-
-    Ok(Json(basic_info))
+    let updated_user = state.user_service.update_user(&user, req).await?;
+    Ok(Json(updated_user))
 }
 
 #[utoipa::path(
@@ -184,13 +127,7 @@ pub async fn get_current_user_settings(
     Extension(user): Extension<User>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Setting>, ApiError> {
-
-    let setting = state
-        .user_repo
-        .get_setting_by_user_id(user.id)
-        .await?
-        .ok_or_else(|| CoreError::NotFound("Setting not found".to_string()))?;
-
+    let setting = state.user_service.get_user_settings(user.id).await?;
     Ok(Json(setting))
 }
 
@@ -214,7 +151,6 @@ pub async fn update_current_user_settings(
     State(state): State<Arc<AppState>>,
     Json(req): Json<UpdateSettingRequest>,
 ) -> Result<Json<Setting>, ApiError> {
-    let setting = state.user_repo.update_setting(user.id, req).await?;
-
+    let setting = state.user_service.update_user_settings(user.id, req).await?;
     Ok(Json(setting))
 }
