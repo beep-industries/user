@@ -7,7 +7,7 @@ use axum::{
 use serde::Deserialize;
 use std::sync::Arc;
 use utoipa::IntoParams;
-use user_core::{User, UserBasicInfo, UserFullInfo, UserService};
+use user_core::{User, UserBasicInfo, UserService};
 
 #[derive(Deserialize, IntoParams)]
 pub struct FullInfoQuery {
@@ -35,17 +35,10 @@ pub async fn get_current_user(
     Query(query): Query<FullInfoQuery>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    if query.full_info {
-        let full_info: UserFullInfo = state.service.user_service.get_user_full_info(&user).await?;
-        Ok(Json(serde_json::to_value(full_info).unwrap()))
-    } else {
-        let basic_info = UserBasicInfo {
-            id: user.id,
-            display_name: user.display_name,
-            profile_picture: user.profile_picture,
-            status: user.status,
-            sub: user.sub,
-        };
-        Ok(Json(serde_json::to_value(basic_info).unwrap()))
-    }
+    let info = state
+        .service
+        .user_service
+        .get_current_user_info(&user, query.full_info)
+        .await?;
+    Ok(Json(info))
 }

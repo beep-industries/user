@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 pub trait UserService: Send + Sync {
     fn get_user_by_id(&self, user_id: Uuid) -> impl Future<Output = Result<UserBasicInfo, CoreError>> + Send;
-    fn get_user_full_info(&self, user: &User) -> impl Future<Output = Result<UserFullInfo, CoreError>> + Send;
+    fn get_current_user_info(&self, user: &User, full_info: bool) -> impl Future<Output = Result<serde_json::Value, CoreError>> + Send;
     fn update_user(&self, user: &User, req: UpdateUserRequest) -> impl Future<Output = Result<UserBasicInfo, CoreError>> + Send;
     fn get_user_settings(&self, user_id: Uuid) -> impl Future<Output = Result<Setting, CoreError>> + Send;
     fn update_user_settings(&self, user_id: Uuid, req: UpdateSettingRequest) -> impl Future<Output = Result<Setting, CoreError>> + Send;
@@ -48,24 +48,36 @@ impl<R: UserRepository + Clone> UserService for UserServiceImpl<R> {
         })
     }
 
-    async fn get_user_full_info(&self, user: &User) -> Result<UserFullInfo, CoreError> {
-        let keycloak_info = self
-            .keycloak_service
-            .get_user_info(&user.sub)
-            .await
-            .map_err(|e| CoreError::KeycloakError(e.to_string()))?;
+    async fn get_current_user_info(&self, user: &User, full_info: bool) -> Result<serde_json::Value, CoreError> {
+        if full_info {
+            let keycloak_info = self
+                .keycloak_service
+                .get_user_info(&user.sub)
+                .await
+                .map_err(|e| CoreError::KeycloakError(e.to_string()))?;
 
-        Ok(UserFullInfo {
-            id: user.id,
-            display_name: user.display_name.clone(),
-            profile_picture: user.profile_picture.clone(),
-            status: user.status.clone(),
-            sub: user.sub.clone(),
-            username: keycloak_info.username,
-            email: keycloak_info.email,
-            first_name: keycloak_info.first_name,
-            last_name: keycloak_info.last_name,
-        })
+            let full = UserFullInfo {
+                id: user.id,
+                display_name: user.display_name.clone(),
+                profile_picture: user.profile_picture.clone(),
+                status: user.status.clone(),
+                sub: user.sub.clone(),
+                username: keycloak_info.username,
+                email: keycloak_info.email,
+                first_name: keycloak_info.first_name,
+                last_name: keycloak_info.last_name,
+            };
+            Ok(serde_json::to_value(full).unwrap())
+        } else {
+            let basic = UserBasicInfo {
+                id: user.id,
+                display_name: user.display_name.clone(),
+                profile_picture: user.profile_picture.clone(),
+                status: user.status.clone(),
+                sub: user.sub.clone(),
+            };
+            Ok(serde_json::to_value(basic).unwrap())
+        }
     }
 
     async fn update_user(&self, user: &User, req: UpdateUserRequest) -> Result<UserBasicInfo, CoreError> {
