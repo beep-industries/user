@@ -1,4 +1,4 @@
-use crate::middleware::JwksCache;
+use beep_auth::KeycloakAuthRepository;
 use std::sync::Arc;
 use user_core::ApplicationService;
 
@@ -7,14 +7,14 @@ use user_core::ApplicationService;
 #[derive(Clone)]
 pub struct AppState {
     pub service: ApplicationService,
-    pub jwks_cache: Arc<JwksCache>,
+    pub auth_repository: Arc<KeycloakAuthRepository>,
 }
 
 impl AppState {
-    pub fn new(service: ApplicationService, jwks_cache: JwksCache) -> Self {
+    pub fn new(service: ApplicationService, auth_repository: KeycloakAuthRepository) -> Self {
         Self {
             service,
-            jwks_cache: Arc::new(jwks_cache),
+            auth_repository: Arc::new(auth_repository),
         }
     }
 }

@@ -27,8 +27,7 @@ serde_json = "1.0"
 thiserror = "2.0"
 
 # Authentication
-jsonwebtoken = "9.3"
-reqwest = { version = "0.12", features = ["json"] }
+beep-auth = "0.1"
 
 # Logging
 tracing = "0.1"
