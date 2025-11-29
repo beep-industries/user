@@ -1,0 +1,110 @@
+use crate::error::CoreError;
+use crate::models::{
+    Setting, UpdateSettingRequest, UpdateUserRequest, User, UserBasicInfo, UserFullInfo,
+};
+use crate::repository::UserRepository;
+use crate::services::KeycloakService;
+use std::future::Future;
+use uuid::Uuid;
+
+pub trait UserService: Send + Sync {
+    fn get_user_by_id(&self, user_id: Uuid) -> impl Future<Output = Result<UserBasicInfo, CoreError>> + Send;
+    fn get_user_full_info(&self, user: &User) -> impl Future<Output = Result<UserFullInfo, CoreError>> + Send;
+    fn update_user(&self, user: &User, req: UpdateUserRequest) -> impl Future<Output = Result<UserBasicInfo, CoreError>> + Send;
+    fn get_user_settings(&self, user_id: Uuid) -> impl Future<Output = Result<Setting, CoreError>> + Send;
+    fn update_user_settings(&self, user_id: Uuid, req: UpdateSettingRequest) -> impl Future<Output = Result<Setting, CoreError>> + Send;
+    fn get_or_create_user(&self, sub: &str) -> impl Future<Output = Result<User, CoreError>> + Send;
+}
+
+#[derive(Clone)]
+pub struct UserServiceImpl<R: UserRepository> {
+    user_repo: R,
+    keycloak_service: KeycloakService,
+}
+
+impl<R: UserRepository> UserServiceImpl<R> {
+    pub fn new(user_repo: R, keycloak_service: KeycloakService) -> Self {
+        Self {
+            user_repo,
+            keycloak_service,
+        }
+    }
+}
+
+impl<R: UserRepository + Clone> UserService for UserServiceImpl<R> {
+    async fn get_user_by_id(&self, user_id: Uuid) -> Result<UserBasicInfo, CoreError> {
+        let user = self
+            .user_repo
+            .get_user_by_id(user_id)
+            .await?
+            .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
+
+        Ok(UserBasicInfo {
+            id: user.id,
+            display_name: user.display_name,
+            profile_picture: user.profile_picture,
+            status: user.status,
+            sub: user.sub,
+        })
+    }
+
+    async fn get_user_full_info(&self, user: &User) -> Result<UserFullInfo, CoreError> {
+        let keycloak_info = self
+            .keycloak_service
+            .get_user_info(&user.sub)
+            .await
+            .map_err(|e| CoreError::KeycloakError(e.to_string()))?;
+
+        Ok(UserFullInfo {
+            id: user.id,
+            display_name: user.display_name.clone(),
+            profile_picture: user.profile_picture.clone(),
+            status: user.status.clone(),
+            sub: user.sub.clone(),
+            username: keycloak_info.username,
+            email: keycloak_info.email,
+            first_name: keycloak_info.first_name,
+            last_name: keycloak_info.last_name,
+        })
+    }
+
+    async fn update_user(&self, user: &User, req: UpdateUserRequest) -> Result<UserBasicInfo, CoreError> {
+        // Update Keycloak first (if it fails, we don't touch the local DB)
+        if req.has_keycloak_fields() {
+            self.keycloak_service
+                .update_user_info(&user.sub, &req)
+                .await
+                .map_err(|e| CoreError::KeycloakError(e.to_string()))?;
+        }
+
+        // Update local DB
+        let updated_user = if req.has_local_fields() {
+            self.user_repo.update_user(user.id, req).await?
+        } else {
+            user.clone()
+        };
+
+        Ok(UserBasicInfo {
+            id: updated_user.id,
+            display_name: updated_user.display_name,
+            profile_picture: updated_user.profile_picture,
+            status: updated_user.status,
+            sub: updated_user.sub,
+        })
+    }
+
+    async fn get_user_settings(&self, user_id: Uuid) -> Result<Setting, CoreError> {
+        self.user_repo
+            .get_setting_by_user_id(user_id)
+            .await?
+            .ok_or_else(|| CoreError::NotFound("Settings not found".to_string()))
+    }
+
+    async fn update_user_settings(&self, user_id: Uuid, req: UpdateSettingRequest) -> Result<Setting, CoreError> {
+        Ok(self.user_repo.update_setting(user_id, req).await?)
+    }
+
+    async fn get_or_create_user(&self, sub: &str) -> Result<User, CoreError> {
+        Ok(self.user_repo.get_or_create_user(sub).await?)
+    }
+}
