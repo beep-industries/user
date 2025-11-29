@@ -1,4 +1,4 @@
-use crate::handlers::AppState;
+use crate::state::AppState;
 use axum::{
     body::Body,
     extract::{Request, State},
@@ -145,6 +145,7 @@ pub async fn auth_middleware(
     // the performance overhead of checking user existence on each authenticated request.
     // For now, we accept this trade-off for simplicity.
     let user = state
+        .service
         .user_service
         .get_or_create_user(&token_data.claims.sub)
         .await
