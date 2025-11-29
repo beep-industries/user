@@ -4,52 +4,83 @@ use axum::{
     Json,
 };
 use serde::Serialize;
-use user_core::CoreError;
+use thiserror::Error;
 
 #[derive(Serialize)]
 struct ErrorResponse {
     error: String,
 }
 
-// Wrapper type to implement IntoResponse for CoreError
-pub struct ApiError(pub CoreError);
+#[derive(Debug, Error)]
+pub enum ApiError {
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
 
-impl From<CoreError> for ApiError {
-    fn from(err: CoreError) -> Self {
-        ApiError(err)
+    #[error("Forbidden: {0}")]
+    Forbidden(String),
+
+    #[error("Not found: {0}")]
+    NotFound(String),
+
+    #[error("Bad request: {0}")]
+    BadRequest(String),
+
+    #[error("Conflict: {0}")]
+    Conflict(String),
+
+    #[error("Rate limit exceeded")]
+    RateLimitExceeded,
+
+    #[error("Service unavailable: {0}")]
+    ServiceUnavailable(String),
+
+    #[error("Internal server error: {0}")]
+    InternalServerError(String),
+}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> Response {
+        let (status, message) = match &self {
+            ApiError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg.clone()),
+            ApiError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg.clone()),
+            ApiError::NotFound(msg) => (StatusCode::NOT_FOUND, msg.clone()),
+            ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg.clone()),
+            ApiError::Conflict(msg) => (StatusCode::CONFLICT, msg.clone()),
+            ApiError::RateLimitExceeded => (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded".to_string()),
+            ApiError::ServiceUnavailable(msg) => (StatusCode::SERVICE_UNAVAILABLE, msg.clone()),
+            ApiError::InternalServerError(msg) => {
+                tracing::error!("Internal server error: {}", msg);
+                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
+            }
+        };
+
+        let body = Json(ErrorResponse { error: message });
+        (status, body).into_response()
     }
 }
 
 impl From<sqlx::Error> for ApiError {
     fn from(err: sqlx::Error) -> Self {
-        ApiError(CoreError::from(err))
+        tracing::error!("Database error: {}", err);
+        ApiError::InternalServerError("Database error".to_string())
     }
 }
 
-impl IntoResponse for ApiError {
-    fn into_response(self) -> Response {
-        let (status, error_message) = match self.0 {
-            CoreError::DatabaseError(e) => {
+impl From<user_core::CoreError> for ApiError {
+    fn from(err: user_core::CoreError) -> Self {
+        match err {
+            user_core::CoreError::DatabaseError(e) => {
                 tracing::error!("Database error: {}", e);
-                (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string())
+                ApiError::InternalServerError("Database error".to_string())
             }
-            CoreError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
-            CoreError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
-            CoreError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
-            CoreError::InternalError(msg) => {
-                tracing::error!("Internal error: {}", msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, msg)
-            }
-            CoreError::KeycloakError(msg) => {
+            user_core::CoreError::NotFound(msg) => ApiError::NotFound(msg),
+            user_core::CoreError::BadRequest(msg) => ApiError::BadRequest(msg),
+            user_core::CoreError::Unauthorized(msg) => ApiError::Unauthorized(msg),
+            user_core::CoreError::InternalError(msg) => ApiError::InternalServerError(msg),
+            user_core::CoreError::KeycloakError(msg) => {
                 tracing::error!("Keycloak error: {}", msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, "Keycloak error".to_string())
+                ApiError::ServiceUnavailable("Authentication service error".to_string())
             }
-        };
-
-        let body = Json(ErrorResponse {
-            error: error_message,
-        });
-
-        (status, body).into_response()
+        }
     }
 }
