@@ -1,3 +1,3 @@
 pub mod auth;
 
-pub use auth::{auth_middleware, JwksCache};
+pub use auth::auth_middleware;

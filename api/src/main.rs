@@ -9,11 +9,12 @@ use crate::{
         get_current_user, get_current_user_settings, get_user_by_id, update_current_user,
         update_current_user_settings,
     },
-    middleware::{auth_middleware, JwksCache},
+    middleware::auth_middleware,
     openapi::ApiDoc,
     state::AppState,
 };
 use axum::{middleware as axum_middleware, routing::get, Router};
+use beep_auth::KeycloakAuthRepository;
 use clap::{Parser, Subcommand};
 use config::Config;
 use sqlx::postgres::PgPoolOptions;
@@ -72,7 +73,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             tracing::info!("Initializing services...");
             let user_repo = PostgresUserRepository::new(pool);
-            let jwks_cache = JwksCache::new(&config.keycloak_internal_url, &config.keycloak_realm);
+            let auth_repository = KeycloakAuthRepository::new(
+                format!(
+                    "{}/realms/{}",
+                    config.keycloak_internal_url, config.keycloak_realm
+                ),
+                None,
+            );
             let keycloak_service = KeycloakService::new(
                 config.keycloak_internal_url,
                 config.keycloak_realm,
@@ -81,7 +88,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
             let service = ApplicationService::new(user_repo, keycloak_service);
 
-            let app_state = Arc::new(AppState::new(service, jwks_cache));
+            let app_state = Arc::new(AppState::new(service, auth_repository));
 
             let cors = CorsLayer::new()
                 .allow_origin(Any)
