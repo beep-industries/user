@@ -2,20 +2,18 @@ mod error;
 mod handlers;
 mod middleware;
 mod openapi;
+mod state;
 
 use crate::{
     handlers::{
         get_current_user, get_current_user_settings, get_user_by_id, update_current_user,
-        update_current_user_settings, AppState,
+        update_current_user_settings,
     },
     middleware::{auth_middleware, JwksCache},
     openapi::ApiDoc,
+    state::AppState,
 };
-use axum::{
-    middleware as axum_middleware,
-    routing::get,
-    Router,
-};
+use axum::{middleware as axum_middleware, routing::get, Router};
 use clap::{Parser, Subcommand};
 use config::Config;
 use sqlx::postgres::PgPoolOptions;
@@ -23,7 +21,7 @@ use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
-use user_core::{KeycloakService, PostgresUserRepository, UserServiceImpl};
+use user_core::{ApplicationService, KeycloakService, PostgresUserRepository};
 
 #[derive(Parser)]
 #[command(name = "user-service")]
@@ -81,12 +79,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 config.keycloak_client_id,
                 config.keycloak_client_secret,
             );
-            let user_service = UserServiceImpl::new(user_repo, keycloak_service);
+            let service = ApplicationService::new(user_repo, keycloak_service);
 
-            let app_state = Arc::new(AppState {
-                user_service,
-                jwks_cache,
-            });
+            let app_state = Arc::new(AppState::new(service, jwks_cache));
 
             let cors = CorsLayer::new()
                 .allow_origin(Any)

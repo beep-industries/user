@@ -1,5 +1,5 @@
 use crate::error::ApiError;
-use crate::middleware::JwksCache;
+use crate::state::AppState;
 use axum::{
     extract::{Extension, Path, Query, State},
     Json,
@@ -8,16 +8,10 @@ use serde::Deserialize;
 use std::sync::Arc;
 use utoipa::IntoParams;
 use user_core::{
-    PostgresUserRepository, Setting, UpdateSettingRequest, UpdateUserRequest, User, UserBasicInfo,
-    UserFullInfo, UserService, UserServiceImpl,
+    Setting, UpdateSettingRequest, UpdateUserRequest, User, UserBasicInfo, UserFullInfo,
+    UserService,
 };
 use uuid::Uuid;
-
-#[derive(Clone)]
-pub struct AppState {
-    pub user_service: UserServiceImpl<PostgresUserRepository>,
-    pub jwks_cache: JwksCache,
-}
 
 #[derive(Deserialize, IntoParams)]
 pub struct FullInfoQuery {
@@ -46,7 +40,7 @@ pub async fn get_current_user(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     if query.full_info {
-        let full_info: UserFullInfo = state.user_service.get_user_full_info(&user).await?;
+        let full_info: UserFullInfo = state.service.user_service.get_user_full_info(&user).await?;
         Ok(Json(serde_json::to_value(full_info).unwrap()))
     } else {
         let basic_info = UserBasicInfo {
@@ -81,7 +75,7 @@ pub async fn get_user_by_id(
     Path(user_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<UserBasicInfo>, ApiError> {
-    let user = state.user_service.get_user_by_id(user_id).await?;
+    let user = state.service.user_service.get_user_by_id(user_id).await?;
     Ok(Json(user))
 }
 
@@ -105,7 +99,7 @@ pub async fn update_current_user(
     State(state): State<Arc<AppState>>,
     Json(req): Json<UpdateUserRequest>,
 ) -> Result<Json<UserBasicInfo>, ApiError> {
-    let updated_user = state.user_service.update_user(&user, req).await?;
+    let updated_user = state.service.user_service.update_user(&user, req).await?;
     Ok(Json(updated_user))
 }
 
@@ -127,7 +121,7 @@ pub async fn get_current_user_settings(
     Extension(user): Extension<User>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Setting>, ApiError> {
-    let setting = state.user_service.get_user_settings(user.id).await?;
+    let setting = state.service.user_service.get_user_settings(user.id).await?;
     Ok(Json(setting))
 }
 
@@ -151,6 +145,10 @@ pub async fn update_current_user_settings(
     State(state): State<Arc<AppState>>,
     Json(req): Json<UpdateSettingRequest>,
 ) -> Result<Json<Setting>, ApiError> {
-    let setting = state.user_service.update_user_settings(user.id, req).await?;
+    let setting = state
+        .service
+        .user_service
+        .update_user_settings(user.id, req)
+        .await?;
     Ok(Json(setting))
 }
