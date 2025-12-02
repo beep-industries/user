@@ -112,17 +112,22 @@ Keycloak will be available at http://localhost:8080 with the `myrealm` realm alr
 - `user-service` client for backend API (with service account)
 - Test user: `testuser` / `test123`
 
+### Docker Networks
+
+The project uses two Docker networks:
+
+- **`user-network`**: Internal bridge network for communication between the user-api and its PostgreSQL database
+- **`keycloak_network`**: External network shared with the client project to communicate with Keycloak. This network must be created by starting the client's docker-compose first.
+
+This is why two Keycloak URLs are configured:
+- `KEYCLOAK_URL`: External URL (http://localhost:8080) for browser redirects
+- `KEYCLOAK_INTERNAL_URL`: Internal URL (http://client-keycloak-1:8080) for service-to-service communication via the Docker network
+
 ### Setup User Service
 
 1. **Create `.env` file**:
 ```bash
 cp .env.example .env
-```
-
-Update `.env` with the client secret from the Keycloak configuration:
-```env
-KEYCLOAK_CLIENT_SECRET=ABvykyIUah2CcQPiRcvcgd7GA4MrEdx4
-KEYCLOAK_INTERNAL_URL=http://client-keycloak-1:8080
 ```
 
 2. **Start the user service**:
