@@ -6,6 +6,7 @@ pub struct Config {
     pub database_url: String,
     pub server_host: String,
     pub server_port: u16,
+    pub health_port: u16,
     pub keycloak_url: String,
     pub keycloak_internal_url: String,
     pub keycloak_realm: String,
@@ -26,7 +27,10 @@ impl Config {
             database_url: env::var("DATABASE_URL")?,
             server_host: env::var("SERVER_HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
             server_port: env::var("SERVER_PORT")
-                .unwrap_or_else(|_| "8080".to_string())
+                .unwrap_or_else(|_| "3000".to_string())
+                .parse()?,
+            health_port: env::var("HEALTH_PORT")
+                .unwrap_or_else(|_| "3001".to_string())
                 .parse()?,
             keycloak_url,
             keycloak_internal_url,

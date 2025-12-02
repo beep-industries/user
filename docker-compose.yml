@@ -32,8 +32,10 @@ services:
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
       JWT_SECRET: ${JWT_SECRET}
       RUST_LOG: info
+      HEALTH_PORT: 3001
     ports:
       - "3000:3000"
+      - "3001:3001"
     networks:
       - user-network
       - keycloak_network
