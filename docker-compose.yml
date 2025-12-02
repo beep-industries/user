@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16.2
+    image: postgres:18.1
     container_name: user-service-db
     environment:
       POSTGRES_DB: userservice_db
