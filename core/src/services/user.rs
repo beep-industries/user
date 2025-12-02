@@ -67,7 +67,7 @@ impl<R: UserRepository + Clone> UserService for UserServiceImpl<R> {
                 first_name: keycloak_info.first_name,
                 last_name: keycloak_info.last_name,
             };
-            Ok(serde_json::to_value(full).unwrap())
+            serde_json::to_value(full).map_err(|e| CoreError::InternalError(e.to_string()))
         } else {
             let basic = UserBasicInfo {
                 id: user.id,
@@ -76,7 +76,7 @@ impl<R: UserRepository + Clone> UserService for UserServiceImpl<R> {
                 status: user.status.clone(),
                 sub: user.sub.clone(),
             };
-            Ok(serde_json::to_value(basic).unwrap())
+            serde_json::to_value(basic).map_err(|e| CoreError::InternalError(e.to_string()))
         }
     }
 
