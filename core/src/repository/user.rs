@@ -79,40 +79,32 @@ impl UserRepository for PostgresUserRepository {
     }
 
     async fn update_user(&self, user_id: Uuid, req: UpdateUserRequest) -> Result<User, sqlx::Error> {
-        let mut query = String::from("UPDATE users SET updated_at = NOW()");
-        let mut bindings = Vec::new();
-        let mut param_count = 1;
+        let mut builder: sqlx::QueryBuilder<sqlx::Postgres> =
+            sqlx::QueryBuilder::new("UPDATE users SET updated_at = NOW()");
 
         if let Some(display_name) = &req.display_name {
-            query.push_str(&format!(", display_name = ${}", param_count));
-            bindings.push(display_name.clone());
-            param_count += 1;
+            builder.push(", display_name = ");
+            builder.push_bind(display_name);
         }
 
         if let Some(profile_picture) = &req.profile_picture {
-            query.push_str(&format!(", profile_picture = ${}", param_count));
-            bindings.push(profile_picture.clone());
-            param_count += 1;
+            builder.push(", profile_picture = ");
+            builder.push_bind(profile_picture);
         }
 
         if let Some(status) = &req.status {
-            query.push_str(&format!(", status = ${}", param_count));
-            bindings.push(status.clone());
-            param_count += 1;
+            builder.push(", status = ");
+            builder.push_bind(status);
         }
 
-        query.push_str(&format!(
-            " WHERE id = ${} RETURNING id, display_name, profile_picture, status, sub, created_at, updated_at",
-            param_count
-        ));
+        builder.push(" WHERE id = ");
+        builder.push_bind(user_id);
+        builder.push(" RETURNING id, display_name, profile_picture, status, sub, created_at, updated_at");
 
-        let mut q = sqlx::query_as::<_, User>(&query);
-        for binding in bindings {
-            q = q.bind(binding);
-        }
-        q = q.bind(user_id);
-
-        let user = q.fetch_one(&self.pool).await?;
+        let user = builder
+            .build_query_as::<User>()
+            .fetch_one(&self.pool)
+            .await?;
 
         Ok(user)
     }
@@ -148,34 +140,27 @@ impl UserRepository for PostgresUserRepository {
     }
 
     async fn update_setting(&self, user_id: Uuid, req: UpdateSettingRequest) -> Result<Setting, sqlx::Error> {
-        let mut query = String::from("UPDATE param SET updated_at = NOW()");
-        let mut bindings = Vec::new();
-        let mut bind_count = 1;
+        let mut builder: sqlx::QueryBuilder<sqlx::Postgres> =
+            sqlx::QueryBuilder::new("UPDATE param SET updated_at = NOW()");
 
         if let Some(theme) = &req.theme {
-            query.push_str(&format!(", theme = ${}", bind_count));
-            bindings.push(theme.clone());
-            bind_count += 1;
+            builder.push(", theme = ");
+            builder.push_bind(theme);
         }
 
         if let Some(lang) = &req.lang {
-            query.push_str(&format!(", lang = ${}", bind_count));
-            bindings.push(lang.clone());
-            bind_count += 1;
+            builder.push(", lang = ");
+            builder.push_bind(lang);
         }
 
-        query.push_str(&format!(
-            " WHERE user_id = ${} RETURNING id, user_id, theme, lang, created_at, updated_at",
-            bind_count
-        ));
+        builder.push(" WHERE user_id = ");
+        builder.push_bind(user_id);
+        builder.push(" RETURNING id, user_id, theme, lang, created_at, updated_at");
 
-        let mut q = sqlx::query_as::<_, Setting>(&query);
-        for binding in bindings {
-            q = q.bind(binding);
-        }
-        q = q.bind(user_id);
-
-        let setting = q.fetch_one(&self.pool).await?;
+        let setting = builder
+            .build_query_as::<Setting>()
+            .fetch_one(&self.pool)
+            .await?;
 
         Ok(setting)
     }

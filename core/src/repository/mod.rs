@@ -1,3 +1,3 @@
-pub mod user_repository;
+pub mod user;
 
-pub use user_repository::{PostgresUserRepository, UserRepository};
+pub use user::{PostgresUserRepository, UserRepository};
