@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     display_name VARCHAR(255),
     profile_picture VARCHAR(500),
-    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    description VARCHAR(255),
     sub VARCHAR(255) NOT NULL UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

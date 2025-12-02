@@ -43,7 +43,7 @@ impl<R: UserRepository + Clone> UserService for UserServiceImpl<R> {
             id: user.id,
             display_name: user.display_name,
             profile_picture: user.profile_picture,
-            status: user.status,
+            description: user.description,
             sub: user.sub,
         })
     }
@@ -60,7 +60,7 @@ impl<R: UserRepository + Clone> UserService for UserServiceImpl<R> {
                 id: user.id,
                 display_name: user.display_name.clone(),
                 profile_picture: user.profile_picture.clone(),
-                status: user.status.clone(),
+                description: user.description.clone(),
                 sub: user.sub.clone(),
                 username: keycloak_info.username,
                 email: keycloak_info.email,
@@ -73,7 +73,7 @@ impl<R: UserRepository + Clone> UserService for UserServiceImpl<R> {
                 id: user.id,
                 display_name: user.display_name.clone(),
                 profile_picture: user.profile_picture.clone(),
-                status: user.status.clone(),
+                description: user.description.clone(),
                 sub: user.sub.clone(),
             };
             serde_json::to_value(basic).map_err(|e| CoreError::InternalError(e.to_string()))
@@ -100,7 +100,7 @@ impl<R: UserRepository + Clone> UserService for UserServiceImpl<R> {
             id: updated_user.id,
             display_name: updated_user.display_name,
             profile_picture: updated_user.profile_picture,
-            status: updated_user.status,
+            description: updated_user.description,
             sub: updated_user.sub,
         })
     }
