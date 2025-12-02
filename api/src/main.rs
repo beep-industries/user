@@ -13,7 +13,7 @@ use crate::{
     openapi::ApiDoc,
     state::AppState,
 };
-use axum::{middleware as axum_middleware, routing::get, Router};
+use axum::{middleware as axum_middleware, routing::get, Json, Router};
 use beep_auth::KeycloakAuthRepository;
 use clap::{Parser, Subcommand};
 use config::Config;
@@ -114,11 +114,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .merge(protected_routes)
                 .layer(cors);
 
-            let addr = format!("{}:{}", config.server_host, config.server_port);
-            tracing::info!("Server listening on {}", addr);
+            let health_router = Router::new().route(
+                "/health",
+                get(|| async { Json(serde_json::json!({ "status": "ok" })) }),
+            );
 
-            let listener = tokio::net::TcpListener::bind(&addr).await?;
-            axum::serve(listener, app).await?;
+            let api_addr = format!("{}:{}", config.server_host, config.server_port);
+            let health_addr = format!("{}:{}", config.server_host, config.health_port);
+
+            let api_listener = tokio::net::TcpListener::bind(&api_addr).await?;
+            let health_listener = tokio::net::TcpListener::bind(&health_addr).await?;
+
+            tracing::info!("API server listening on {}", api_addr);
+            tracing::info!("Health server listening on {}", health_addr);
+
+            tokio::try_join!(
+                axum::serve(api_listener, app),
+                axum::serve(health_listener, health_router),
+            )?;
         }
     }
 
