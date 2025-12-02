@@ -31,7 +31,7 @@ impl UserRepository for PostgresUserRepository {
             r#"
             INSERT INTO users (sub)
             VALUES ($1)
-            RETURNING id, display_name, profile_picture, status, sub, created_at, updated_at
+            RETURNING id, display_name, profile_picture, description, sub, created_at, updated_at
             "#,
         )
         .bind(sub)
@@ -44,7 +44,7 @@ impl UserRepository for PostgresUserRepository {
     async fn get_user_by_id(&self, user_id: Uuid) -> Result<Option<User>, sqlx::Error> {
         let user = sqlx::query_as::<_, User>(
             r#"
-            SELECT id, display_name, profile_picture, status, sub, created_at, updated_at
+            SELECT id, display_name, profile_picture, description, sub, created_at, updated_at
             FROM users
             WHERE id = $1
             "#,
@@ -59,7 +59,7 @@ impl UserRepository for PostgresUserRepository {
     async fn get_user_by_sub(&self, sub: &str) -> Result<Option<User>, sqlx::Error> {
         let user = sqlx::query_as::<_, User>(
             r#"
-            SELECT id, display_name, profile_picture, status, sub, created_at, updated_at
+            SELECT id, display_name, profile_picture, description, sub, created_at, updated_at
             FROM users
             WHERE sub = $1
             "#,
@@ -92,14 +92,14 @@ impl UserRepository for PostgresUserRepository {
             builder.push_bind(profile_picture);
         }
 
-        if let Some(status) = &req.status {
-            builder.push(", status = ");
-            builder.push_bind(status);
+        if let Some(description) = &req.description {
+            builder.push(", description = ");
+            builder.push_bind(description);
         }
 
         builder.push(" WHERE id = ");
         builder.push_bind(user_id);
-        builder.push(" RETURNING id, display_name, profile_picture, status, sub, created_at, updated_at");
+        builder.push(" RETURNING id, display_name, profile_picture, description, sub, created_at, updated_at");
 
         let user = builder
             .build_query_as::<User>()

@@ -12,7 +12,7 @@ pub struct User {
     pub id: Uuid,
     pub display_name: Option<String>,
     pub profile_picture: Option<String>,
-    pub status: String,
+    pub description: Option<String>,
     pub sub: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -35,7 +35,7 @@ pub struct UserBasicInfo {
     pub id: Uuid,
     pub display_name: Option<String>,
     pub profile_picture: Option<String>,
-    pub status: String,
+    pub description: Option<String>,
     pub sub: String,
 }
 
@@ -54,7 +54,7 @@ pub struct UserFullInfo {
     pub id: Uuid,
     pub display_name: Option<String>,
     pub profile_picture: Option<String>,
-    pub status: String,
+    pub description: Option<String>,
     pub sub: String,
     pub username: String,
     pub email: String,
@@ -75,8 +75,8 @@ pub struct UpdateUserRequest {
     pub display_name: Option<String>,
     /// Profile picture URL (stored in User Service Database)
     pub profile_picture: Option<String>,
-    /// User status (stored in User Service Database)
-    pub status: Option<String>,
+    /// User description (stored in User Service Database)
+    pub description: Option<String>,
     /// Username (stored in Keycloak Database)
     pub username: Option<String>,
     /// Email address (stored in Keycloak Database)
@@ -89,7 +89,7 @@ pub struct UpdateUserRequest {
 
 impl UpdateUserRequest {
     pub fn has_local_fields(&self) -> bool {
-        self.display_name.is_some() || self.profile_picture.is_some() || self.status.is_some()
+        self.display_name.is_some() || self.profile_picture.is_some() || self.description.is_some()
     }
 
     pub fn has_keycloak_fields(&self) -> bool {
