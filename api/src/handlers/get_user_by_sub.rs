@@ -25,7 +25,7 @@ use uuid::Uuid;
         ("bearer_auth" = [])
     )
 )]
-pub async fn get_user_by_id(
+pub async fn get_user_by_sub(
     Path(sub): Path<Uuid>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<UserBasicInfo>, ApiError> {

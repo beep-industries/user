@@ -23,7 +23,7 @@ use user_core::{Setting, UpdateSettingRequest, UpdateUserRequest, UserBasicInfo,
         crate::handlers::update_current_user,
         crate::handlers::get_current_user_settings,
         crate::handlers::update_current_user_settings,
-        crate::handlers::get_user_by_id,
+        crate::handlers::get_user_by_sub,
     ),
     components(
         schemas(UserBasicInfo, UserFullInfo, UpdateUserRequest, Setting, UpdateSettingRequest)
