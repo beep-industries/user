@@ -8,12 +8,31 @@ use std::future::Future;
 use uuid::Uuid;
 
 pub trait UserService: Send + Sync {
-    fn get_user_by_sub(&self, sub: Uuid) -> impl Future<Output = Result<UserBasicInfo, CoreError>> + Send;
-    fn get_current_user_info(&self, user: &User, full_info: bool) -> impl Future<Output = Result<serde_json::Value, CoreError>> + Send;
-    fn update_user(&self, user: &User, req: UpdateUserRequest) -> impl Future<Output = Result<UserBasicInfo, CoreError>> + Send;
-    fn get_user_settings(&self, sub: Uuid) -> impl Future<Output = Result<Setting, CoreError>> + Send;
-    fn update_user_settings(&self, sub: Uuid, req: UpdateSettingRequest) -> impl Future<Output = Result<Setting, CoreError>> + Send;
-    fn get_or_create_user(&self, sub: Uuid) -> impl Future<Output = Result<User, CoreError>> + Send;
+    fn get_user_by_sub(
+        &self,
+        sub: Uuid,
+    ) -> impl Future<Output = Result<UserBasicInfo, CoreError>> + Send;
+    fn get_current_user_info(
+        &self,
+        user: &User,
+        full_info: bool,
+    ) -> impl Future<Output = Result<serde_json::Value, CoreError>> + Send;
+    fn update_user(
+        &self,
+        user: &User,
+        req: UpdateUserRequest,
+    ) -> impl Future<Output = Result<UserBasicInfo, CoreError>> + Send;
+    fn get_user_settings(
+        &self,
+        sub: Uuid,
+    ) -> impl Future<Output = Result<Setting, CoreError>> + Send;
+    fn update_user_settings(
+        &self,
+        sub: Uuid,
+        req: UpdateSettingRequest,
+    ) -> impl Future<Output = Result<Setting, CoreError>> + Send;
+    fn get_or_create_user(&self, sub: Uuid)
+    -> impl Future<Output = Result<User, CoreError>> + Send;
 }
 
 #[derive(Clone)]
@@ -47,7 +66,11 @@ impl<R: UserRepository + Clone> UserService for UserServiceImpl<R> {
         })
     }
 
-    async fn get_current_user_info(&self, user: &User, full_info: bool) -> Result<serde_json::Value, CoreError> {
+    async fn get_current_user_info(
+        &self,
+        user: &User,
+        full_info: bool,
+    ) -> Result<serde_json::Value, CoreError> {
         if full_info {
             let keycloak_info = self
                 .keycloak_service
@@ -77,7 +100,11 @@ impl<R: UserRepository + Clone> UserService for UserServiceImpl<R> {
         }
     }
 
-    async fn update_user(&self, user: &User, req: UpdateUserRequest) -> Result<UserBasicInfo, CoreError> {
+    async fn update_user(
+        &self,
+        user: &User,
+        req: UpdateUserRequest,
+    ) -> Result<UserBasicInfo, CoreError> {
         // Update Keycloak first (if it fails, we don't touch the local DB)
         if req.has_keycloak_fields() {
             self.keycloak_service
@@ -108,7 +135,11 @@ impl<R: UserRepository + Clone> UserService for UserServiceImpl<R> {
             .ok_or_else(|| CoreError::NotFound("Settings not found".to_string()))
     }
 
-    async fn update_user_settings(&self, sub: Uuid, req: UpdateSettingRequest) -> Result<Setting, CoreError> {
+    async fn update_user_settings(
+        &self,
+        sub: Uuid,
+        req: UpdateSettingRequest,
+    ) -> Result<Setting, CoreError> {
         Ok(self.user_repo.update_setting(sub, req).await?)
     }
 

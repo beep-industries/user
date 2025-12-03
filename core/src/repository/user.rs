@@ -5,12 +5,32 @@ use uuid::Uuid;
 
 pub trait UserRepository: Send + Sync {
     fn create_user(&self, sub: Uuid) -> impl Future<Output = Result<User, sqlx::Error>> + Send;
-    fn get_user_by_sub(&self, sub: Uuid) -> impl Future<Output = Result<Option<User>, sqlx::Error>> + Send;
-    fn get_or_create_user(&self, sub: Uuid) -> impl Future<Output = Result<User, sqlx::Error>> + Send;
-    fn update_user(&self, sub: Uuid, req: UpdateUserRequest) -> impl Future<Output = Result<User, sqlx::Error>> + Send;
-    fn get_setting_by_sub(&self, sub: Uuid) -> impl Future<Output = Result<Option<Setting>, sqlx::Error>> + Send;
-    fn create_setting(&self, sub: Uuid) -> impl Future<Output = Result<Setting, sqlx::Error>> + Send;
-    fn update_setting(&self, sub: Uuid, req: UpdateSettingRequest) -> impl Future<Output = Result<Setting, sqlx::Error>> + Send;
+    fn get_user_by_sub(
+        &self,
+        sub: Uuid,
+    ) -> impl Future<Output = Result<Option<User>, sqlx::Error>> + Send;
+    fn get_or_create_user(
+        &self,
+        sub: Uuid,
+    ) -> impl Future<Output = Result<User, sqlx::Error>> + Send;
+    fn update_user(
+        &self,
+        sub: Uuid,
+        req: UpdateUserRequest,
+    ) -> impl Future<Output = Result<User, sqlx::Error>> + Send;
+    fn get_setting_by_sub(
+        &self,
+        sub: Uuid,
+    ) -> impl Future<Output = Result<Option<Setting>, sqlx::Error>> + Send;
+    fn create_setting(
+        &self,
+        sub: Uuid,
+    ) -> impl Future<Output = Result<Setting, sqlx::Error>> + Send;
+    fn update_setting(
+        &self,
+        sub: Uuid,
+        req: UpdateSettingRequest,
+    ) -> impl Future<Output = Result<Setting, sqlx::Error>> + Send;
 }
 
 #[derive(Clone)]
@@ -83,7 +103,9 @@ impl UserRepository for PostgresUserRepository {
 
         builder.push(" WHERE sub = ");
         builder.push_bind(sub);
-        builder.push(" RETURNING sub, display_name, profile_picture, description, created_at, updated_at");
+        builder.push(
+            " RETURNING sub, display_name, profile_picture, description, created_at, updated_at",
+        );
 
         let user = builder
             .build_query_as::<User>()
@@ -123,7 +145,11 @@ impl UserRepository for PostgresUserRepository {
         Ok(setting)
     }
 
-    async fn update_setting(&self, sub: Uuid, req: UpdateSettingRequest) -> Result<Setting, sqlx::Error> {
+    async fn update_setting(
+        &self,
+        sub: Uuid,
+        req: UpdateSettingRequest,
+    ) -> Result<Setting, sqlx::Error> {
         let mut builder: sqlx::QueryBuilder<sqlx::Postgres> =
             sqlx::QueryBuilder::new("UPDATE param SET updated_at = NOW()");
 

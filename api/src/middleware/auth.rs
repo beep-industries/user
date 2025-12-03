@@ -2,7 +2,7 @@ use crate::state::AppState;
 use axum::{
     body::Body,
     extract::{Request, State},
-    http::{header::AUTHORIZATION, StatusCode},
+    http::{StatusCode, header::AUTHORIZATION},
     middleware::Next,
     response::Response,
 };
@@ -28,14 +28,10 @@ pub async fn auth_middleware(
 
     let token = extract_token_from_bearer(auth_header).ok_or(StatusCode::UNAUTHORIZED)?;
 
-    let identity = state
-        .auth_repository
-        .identify(token)
-        .await
-        .map_err(|e| {
-            tracing::error!("Authentication failed: {:?}", e);
-            StatusCode::UNAUTHORIZED
-        })?;
+    let identity = state.auth_repository.identify(token).await.map_err(|e| {
+        tracing::error!("Authentication failed: {:?}", e);
+        StatusCode::UNAUTHORIZED
+    })?;
 
     let sub_str = match &identity {
         Identity::User(user) => &user.id,

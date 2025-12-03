@@ -93,6 +93,32 @@ sequenceDiagram
     F-->>U: Profile updated ✓
 ```
 
+## Pre-commit Hooks
+
+First, install pre-commit following the [official installation guide](https://pre-commit.com/#install).
+
+Then, install the hooks in your repository:
+
+```bash
+pre-commit install
+```
+
+### Usage
+
+The hooks run automatically before each `git commit`. To run them manually:
+
+```bash
+# Run on all files
+pre-commit run --all-files
+
+# Run on staged files only
+pre-commit run
+
+# Run a specific hook
+pre-commit run fmt
+pre-commit run clippy
+```
+
 ## Local Development
 
 This project uses Keycloak from the [beep-industries/client](https://github.com/beep-industries/client) repository for local development.
