@@ -9,11 +9,10 @@ use utoipa::ToSchema;
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct User {
-    pub id: Uuid,
-    pub display_name: Option<String>,
-    pub profile_picture: Option<String>,
-    pub description: Option<String>,
-    pub sub: String,
+    pub sub: Uuid,
+    pub display_name: String,
+    pub profile_picture: String,
+    pub description: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -21,8 +20,7 @@ pub struct User {
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct Setting {
-    pub id: Uuid,
-    pub user_id: Uuid,
+    pub sub: Uuid,
     pub theme: Option<String>,
     pub lang: Option<String>,
     pub created_at: DateTime<Utc>,
@@ -32,11 +30,10 @@ pub struct Setting {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct UserBasicInfo {
-    pub id: Uuid,
-    pub display_name: Option<String>,
-    pub profile_picture: Option<String>,
-    pub description: Option<String>,
-    pub sub: String,
+    pub sub: Uuid,
+    pub display_name: String,
+    pub profile_picture: String,
+    pub description: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -51,11 +48,10 @@ pub struct KeycloakUserInfo {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct UserFullInfo {
-    pub id: Uuid,
-    pub display_name: Option<String>,
-    pub profile_picture: Option<String>,
-    pub description: Option<String>,
-    pub sub: String,
+    pub sub: Uuid,
+    pub display_name: String,
+    pub profile_picture: String,
+    pub description: String,
     pub username: String,
     pub email: String,
     pub first_name: String,
@@ -65,7 +61,7 @@ pub struct UserFullInfo {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct CreateUserRequest {
-    pub sub: String,
+    pub sub: Uuid,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -30,7 +30,7 @@ pub async fn update_current_user_settings(
     let setting = state
         .service
         .user_service
-        .update_user_settings(user.id, req)
+        .update_user_settings(user.sub, req)
         .await?;
     Ok(Json(setting))
 }

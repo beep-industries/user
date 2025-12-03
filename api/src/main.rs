@@ -101,7 +101,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "/users/me/settings",
                     get(get_current_user_settings).put(update_current_user_settings),
                 )
-                .route("/users/:user_id", get(get_user_by_id))
+                .route("/users/:sub", get(get_user_by_id))
                 .layer(axum_middleware::from_fn_with_state(app_state.clone(), auth_middleware))
                 .with_state(app_state);
 

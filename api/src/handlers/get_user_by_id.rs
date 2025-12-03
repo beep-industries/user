@@ -10,10 +10,10 @@ use uuid::Uuid;
 
 #[utoipa::path(
     get,
-    path = "/users/{user_id}",
+    path = "/users/{sub}",
     tag = "users",
     params(
-        ("user_id" = Uuid, Path, description = "User UUID")
+        ("sub" = Uuid, Path, description = "User sub (UUID)")
     ),
     responses(
         (status = 200, description = "User information retrieved successfully", body = UserBasicInfo),
@@ -26,9 +26,9 @@ use uuid::Uuid;
     )
 )]
 pub async fn get_user_by_id(
-    Path(user_id): Path<Uuid>,
+    Path(sub): Path<Uuid>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<UserBasicInfo>, ApiError> {
-    let user = state.service.user_service.get_user_by_id(user_id).await?;
+    let user = state.service.user_service.get_user_by_sub(sub).await?;
     Ok(Json(user))
 }

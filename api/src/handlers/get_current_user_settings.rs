@@ -25,6 +25,6 @@ pub async fn get_current_user_settings(
     Extension(user): Extension<User>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Setting>, ApiError> {
-    let setting = state.service.user_service.get_user_settings(user.id).await?;
+    let setting = state.service.user_service.get_user_settings(user.sub).await?;
     Ok(Json(setting))
 }
