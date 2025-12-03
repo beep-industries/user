@@ -9,6 +9,7 @@ use axum::{
 use beep_auth::{AuthRepository, Identity};
 use std::sync::Arc;
 use user_core::UserService;
+use uuid::Uuid;
 
 fn extract_token_from_bearer(auth_header: &str) -> Option<&str> {
     auth_header.strip_prefix("Bearer ")
@@ -36,10 +37,15 @@ pub async fn auth_middleware(
             StatusCode::UNAUTHORIZED
         })?;
 
-    let sub = match &identity {
+    let sub_str = match &identity {
         Identity::User(user) => &user.id,
         Identity::Client(client) => &client.id,
     };
+
+    let sub = Uuid::parse_str(sub_str).map_err(|e| {
+        tracing::error!("Invalid sub UUID: {}", e);
+        StatusCode::UNAUTHORIZED
+    })?;
 
     // Auto-create user if not exists (first connection after Keycloak registration)
     // TODO: This is not ideal - we're making a DB call on every request.

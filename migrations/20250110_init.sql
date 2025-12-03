@@ -1,26 +1,21 @@
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    display_name VARCHAR(255),
-    profile_picture VARCHAR(500),
-    description VARCHAR(255),
-    sub VARCHAR(255) NOT NULL UNIQUE,
+    sub UUID PRIMARY KEY,
+    display_name VARCHAR(255) NOT NULL DEFAULT '',
+    profile_picture VARCHAR(500) NOT NULL DEFAULT '',
+    description VARCHAR(255) NOT NULL DEFAULT '',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Param table
 CREATE TABLE IF NOT EXISTS param (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    sub UUID PRIMARY KEY REFERENCES users(sub) ON DELETE CASCADE,
     theme VARCHAR(50) DEFAULT 'light',
     lang VARCHAR(10) DEFAULT 'en',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(user_id)
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Create indexes
-CREATE INDEX idx_users_sub ON users(sub);
 CREATE INDEX idx_users_display_name ON users(display_name);
-CREATE INDEX idx_param_user_id ON param(user_id);

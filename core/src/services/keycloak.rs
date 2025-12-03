@@ -2,6 +2,7 @@ use crate::models::{KeycloakUserInfo, UpdateUserRequest};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 struct KeycloakTokenResponse {
@@ -69,7 +70,7 @@ impl KeycloakService {
 
     pub async fn get_user_info(
         &self,
-        sub: &str,
+        sub: Uuid,
     ) -> Result<KeycloakUserInfo, Box<dyn std::error::Error + Send + Sync>> {
         let token = self.get_admin_token().await?;
 
@@ -101,7 +102,7 @@ impl KeycloakService {
 
     pub async fn update_user_info(
         &self,
-        sub: &str,
+        sub: Uuid,
         update_req: &UpdateUserRequest,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let token = self.get_admin_token().await?;
