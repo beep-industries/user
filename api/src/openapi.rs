@@ -1,5 +1,5 @@
-use utoipa::OpenApi;
 use user_core::{Setting, UpdateSettingRequest, UpdateUserRequest, UserBasicInfo, UserFullInfo};
+use utoipa::OpenApi;
 
 #[derive(OpenApi)]
 #[openapi(

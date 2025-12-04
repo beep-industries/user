@@ -1,8 +1,8 @@
 use crate::error::ApiError;
 use crate::state::AppState;
 use axum::{
-    extract::{Extension, State},
     Json,
+    extract::{Extension, State},
 };
 use std::sync::Arc;
 use user_core::{Setting, User, UserService};
@@ -25,6 +25,10 @@ pub async fn get_current_user_settings(
     Extension(user): Extension<User>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Setting>, ApiError> {
-    let setting = state.service.user_service.get_user_settings(user.sub).await?;
+    let setting = state
+        .service
+        .user_service
+        .get_user_settings(user.sub)
+        .await?;
     Ok(Json(setting))
 }

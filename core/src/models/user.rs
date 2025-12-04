@@ -89,7 +89,10 @@ impl UpdateUserRequest {
     }
 
     pub fn has_keycloak_fields(&self) -> bool {
-        self.username.is_some() || self.email.is_some() || self.first_name.is_some() || self.last_name.is_some()
+        self.username.is_some()
+            || self.email.is_some()
+            || self.first_name.is_some()
+            || self.last_name.is_some()
     }
 }
 

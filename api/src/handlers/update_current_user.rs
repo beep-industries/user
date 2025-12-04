@@ -1,8 +1,8 @@
 use crate::error::ApiError;
 use crate::state::AppState;
 use axum::{
-    extract::{Extension, State},
     Json,
+    extract::{Extension, State},
 };
 use std::sync::Arc;
 use user_core::{UpdateUserRequest, User, UserBasicInfo, UserService};

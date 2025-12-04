@@ -53,12 +53,7 @@ impl KeycloakService {
         params.insert("client_id", &self.client_id);
         params.insert("client_secret", &self.client_secret);
 
-        let response = self
-            .client
-            .post(&token_url)
-            .form(&params)
-            .send()
-            .await?;
+        let response = self.client.post(&token_url).form(&params).send().await?;
 
         if !response.status().is_success() {
             return Err(format!("Failed to get admin token: {}", response.status()).into());

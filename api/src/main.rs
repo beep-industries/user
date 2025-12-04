@@ -13,16 +13,16 @@ use crate::{
     openapi::ApiDoc,
     state::AppState,
 };
-use axum::{middleware as axum_middleware, routing::get, Json, Router};
+use axum::{Json, Router, middleware as axum_middleware, routing::get};
 use beep_auth::KeycloakAuthRepository;
 use clap::{Parser, Subcommand};
 use config::Config;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
+use user_core::{ApplicationService, KeycloakService, PostgresUserRepository};
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
-use user_core::{ApplicationService, KeycloakService, PostgresUserRepository};
 
 #[derive(Parser)]
 #[command(name = "user-service")]
@@ -102,12 +102,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     get(get_current_user_settings).put(update_current_user_settings),
                 )
                 .route("/users/:sub", get(get_user_by_sub))
-                .layer(axum_middleware::from_fn_with_state(app_state.clone(), auth_middleware))
+                .layer(axum_middleware::from_fn_with_state(
+                    app_state.clone(),
+                    auth_middleware,
+                ))
                 .with_state(app_state);
 
             // Public routes (no authentication required)
-            let public_routes = Router::new()
-                .merge(Scalar::with_url("/docs", ApiDoc::openapi()));
+            let public_routes = Router::new().merge(Scalar::with_url("/docs", ApiDoc::openapi()));
 
             let app = Router::new()
                 .merge(public_routes)

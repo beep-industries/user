@@ -1,13 +1,13 @@
 use crate::error::ApiError;
 use crate::state::AppState;
 use axum::{
-    extract::{Extension, Query, State},
     Json,
+    extract::{Extension, Query, State},
 };
 use serde::Deserialize;
 use std::sync::Arc;
-use utoipa::IntoParams;
 use user_core::{User, UserBasicInfo, UserService};
+use utoipa::IntoParams;
 
 #[derive(Deserialize, IntoParams)]
 pub struct FullInfoQuery {

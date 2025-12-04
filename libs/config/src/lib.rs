@@ -20,8 +20,8 @@ impl Config {
         dotenv::dotenv().ok();
 
         let keycloak_url = env::var("KEYCLOAK_URL")?;
-        let keycloak_internal_url = env::var("KEYCLOAK_INTERNAL_URL")
-            .unwrap_or_else(|_| keycloak_url.clone());
+        let keycloak_internal_url =
+            env::var("KEYCLOAK_INTERNAL_URL").unwrap_or_else(|_| keycloak_url.clone());
 
         Ok(Config {
             database_url: env::var("DATABASE_URL")?,
