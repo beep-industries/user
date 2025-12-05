@@ -1,0 +1,94 @@
+{
+  "realm": "myrealm",
+  "enabled": true,
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": false,
+  "verifyEmail": true,
+  "clients": [
+    {
+      "clientId": "frontend",
+      "name": "Frontend Application",
+      "enabled": true,
+      "publicClient": true,
+      "rootUrl": "http://localhost:5173",
+      "baseUrl": "http://localhost:5173",
+      "redirectUris": ["http://localhost:5173/*", "http://localhost:5174/*"],
+      "webOrigins": ["http://localhost:5173", "http://localhost:5174"],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*##http://localhost:5174/*"
+      }
+    },
+    {
+      "clientId": "user-service",
+      "name": "User Service Backend",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "ABvykyIUah2CcQPiRcvcgd7GA4MrEdx4",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "webOrigins": ["/*"],
+      "attributes": {
+        "use.refresh.tokens": "true"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "testuser1",
+      "enabled": true,
+      "email": "test1@example.com",
+      "emailVerified": true,
+      "firstName": "Test1",
+      "lastName": "User1",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "test123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["user"]
+    },
+    {
+      "username": "testuser2",
+      "enabled": true,
+      "email": "test2@example.com",
+      "emailVerified": true,
+      "firstName": "Test2",
+      "lastName": "User2",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "test123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["user"]
+    },
+    {
+      "username": "service-account-user-service",
+      "enabled": true,
+      "serviceAccountClientId": "user-service",
+      "clientRoles": {
+        "realm-management": ["manage-users"]
+      }
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "User role"
+      },
+      {
+        "name": "admin",
+        "description": "Admin role"
+      }
+    ]
+  }
+}

@@ -121,53 +121,18 @@ pre-commit run clippy
 
 ## Local Development
 
-This project uses Keycloak from the [beep-industries/client](https://github.com/beep-industries/client) repository for local development.
-
-### Prerequisites
-
-Clone and start the client repository (includes Keycloak with pre-configured realm):
-
-```bash
-git clone https://github.com/beep-industries/client.git
-cd client
-docker compose up -d
-```
-
-Keycloak will be available at http://localhost:8080 with the `myrealm` realm already configured, including:
-- `frontend` client for React application
-- `user-service` client for backend API (with service account)
-- Test user: `testuser` / `test123`
-
-### Docker Networks
-
-The project uses two Docker networks:
-
-- **`user-network`**: Internal bridge network for communication between the user-api and its PostgreSQL database
-- **`keycloak_network`**: External network shared with the client project to communicate with Keycloak. This network must be created by starting the client's docker-compose first.
-
-This is why two Keycloak URLs are configured:
-- `KEYCLOAK_URL`: External URL (http://localhost:8080) for browser redirects
-- `KEYCLOAK_INTERNAL_URL`: Internal URL (http://client-keycloak-1:8080) for service-to-service communication via the Docker network
-
-### Setup User Service
-
-1. **Create `.env` file**:
 ```bash
 cp .env.example .env
-```
-
-2. **Start the user service**:
-```bash
-# Start all services (postgres + user-api)
 docker compose up -d
-
-# Or start services independently:
-docker compose up -d postgres              # Start database only
-docker compose run --rm user-api migrate   # Run migrations
-docker compose up -d user-api              # Start API only
+docker compose exec user-api user-api migrate
 ```
 
-The service will be available at http://localhost:3000
+This starts Keycloak, two PostgreSQL databases (one for Keycloak, one for the User Service), and the User API.
+
+Services:
+- **User API**: http://localhost:3000
+- **Health check**: http://localhost:3001/health
+- **Keycloak**: http://localhost:8080
 
 ### API Documentation
 
@@ -188,12 +153,17 @@ The `user-api` binary supports the following commands:
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgres://user:pass@host:5432/db` |
-| `SERVER_HOST` | Server host | `0.0.0.0` |
-| `SERVER_PORT` | Server port | `3000` |
+| `KEYCLOAK_DB` | Keycloak database name | `keycloak` |
+| `KEYCLOAK_DB_USER` | Keycloak database user | `keycloak` |
+| `KEYCLOAK_DB_PASSWORD` | Keycloak database password | `keycloak` |
+| `KEYCLOAK_ADMIN` | Keycloak admin username | `admin` |
+| `KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin password | `admin` |
 | `KEYCLOAK_URL` | Keycloak external URL (for browser) | `http://localhost:8080` |
-| `KEYCLOAK_INTERNAL_URL` | Keycloak internal URL (for service) | `http://client-keycloak-1:8080` |
+| `KEYCLOAK_INTERNAL_URL` | Keycloak internal URL (for service) | `http://keycloak:8080` |
 | `KEYCLOAK_REALM` | Keycloak realm name | `myrealm` |
 | `KEYCLOAK_CLIENT_ID` | Keycloak client ID | `user-service` |
-| `KEYCLOAK_CLIENT_SECRET` | Keycloak client secret | `ABvykyIUah2CcQPiRcvcgd7GA4MrEdx4` |
-| `JWT_SECRET` | JWT secret (unused with RS256) | `secret` |
+| `KEYCLOAK_CLIENT_SECRET` | Keycloak client secret | `your-client-secret` |
+| `USER_DB` | User service database name | `userservice` |
+| `USER_DB_USER` | User service database user | `userservice` |
+| `USER_DB_PASSWORD` | User service database password | `userservice` |
+| `JWT_SECRET` | JWT secret key | `your-jwt-secret-key` |

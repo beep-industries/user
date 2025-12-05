@@ -1,30 +1,81 @@
 services:
-  postgres:
-    image: postgres:16.2
-    container_name: user-service-db
+  # PostgreSQL for Keycloak
+  keycloak-db:
+    image: postgres:17.7
+    container_name: keycloak-db
     environment:
-      POSTGRES_DB: userservice_db
-      POSTGRES_USER: userservice
-      POSTGRES_PASSWORD: userservice_password
-    ports:
-      - "5433:5432"
+      POSTGRES_DB: ${KEYCLOAK_DB}
+      POSTGRES_USER: ${KEYCLOAK_DB_USER}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - keycloak_postgres_data:/var/lib/postgresql/data
     networks:
-      user-network:
-        aliases:
-          - user-db
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
+  # Keycloak
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4.2
+    container_name: keycloak
+    command: start --import-realm
+    environment:
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8080
+      KC_HOSTNAME_STRICT_BACKCHANNEL: false
+      KC_HTTP_ENABLED: true
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HEALTH_ENABLED: true
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db/${KEYCLOAK_DB}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+    volumes:
+      - ./keycloak-config:/opt/keycloak/data/import:ro
+    ports:
+      - "8080:8080"
+    networks:
+      - internal
+    restart: unless-stopped
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+
+  # PostgreSQL for User Service
+  user-db:
+    image: postgres:18.1
+    container_name: user-db
+    environment:
+      POSTGRES_DB: ${USER_DB}
+      POSTGRES_USER: ${USER_DB_USER}
+      POSTGRES_PASSWORD: ${USER_DB_PASSWORD}
+    volumes:
+      - user_postgres_data:/var/lib/postgresql/18/docker
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${USER_DB_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # User API
   user-api:
     build:
       context: .
       dockerfile: Dockerfile
       target: api
-    container_name: user-api
+    container_name: user-service
     environment:
-      DATABASE_URL: postgres://userservice:userservice_password@user-db:5432/userservice_db
+      DATABASE_URL: postgres://${USER_DB_USER}:${USER_DB_PASSWORD}@user-db:5432/${USER_DB}
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 3000
+      HEALTH_PORT: 3001
       KEYCLOAK_URL: ${KEYCLOAK_URL}
       KEYCLOAK_INTERNAL_URL: ${KEYCLOAK_INTERNAL_URL}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
@@ -32,21 +83,22 @@ services:
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
       JWT_SECRET: ${JWT_SECRET}
       RUST_LOG: info
-      HEALTH_PORT: 3001
     ports:
       - "3000:3000"
       - "3001:3001"
     networks:
-      - user-network
-      - keycloak_network
+      - internal
     restart: unless-stopped
+    depends_on:
+      user-db:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
 
 volumes:
-  postgres_data:
-    driver: local
+  keycloak_postgres_data:
+  user_postgres_data:
 
 networks:
-  user-network:
+  internal:
     driver: bridge
-  keycloak_network:
-    external: true
