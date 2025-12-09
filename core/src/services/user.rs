@@ -72,11 +72,7 @@ impl<R: UserRepository + Clone, K: KeycloakClient> UserService for UserServiceIm
         full_info: bool,
     ) -> Result<serde_json::Value, CoreError> {
         if full_info {
-            let keycloak_info = self
-                .keycloak_client
-                .get_user_info(user.sub)
-                .await
-                .map_err(|e| CoreError::KeycloakError(e.to_string()))?;
+            let keycloak_info = self.keycloak_client.get_user_info(user.sub).await?;
 
             let full = UserFullInfo {
                 sub: user.sub,
@@ -107,8 +103,7 @@ impl<R: UserRepository + Clone, K: KeycloakClient> UserService for UserServiceIm
         if req.has_keycloak_fields() {
             self.keycloak_client
                 .update_user_info(user.sub, &req)
-                .await
-                .map_err(|e| CoreError::KeycloakError(e.to_string()))?;
+                .await?;
         }
 
         // Update local DB
@@ -150,6 +145,7 @@ impl<R: UserRepository + Clone, K: KeycloakClient> UserService for UserServiceIm
 mod tests {
     use super::*;
     use crate::models::{KeycloakUserInfo, Setting, User};
+    use crate::services::KeycloakError;
     use chrono::Utc;
     use std::collections::HashMap;
     use std::sync::{Arc, Mutex};
@@ -183,28 +179,27 @@ mod tests {
     }
 
     impl KeycloakClient for MockKeycloakClient {
-        async fn get_user_info(
-            &self,
-            sub: Uuid,
-        ) -> Result<KeycloakUserInfo, Box<dyn std::error::Error + Send + Sync>> {
+        async fn get_user_info(&self, sub: Uuid) -> Result<KeycloakUserInfo, KeycloakError> {
             if self.should_fail {
-                return Err("Keycloak unavailable".into());
+                return Err(KeycloakError::GetUserError("Keycloak unavailable".into()));
             }
             self.users
                 .lock()
                 .unwrap()
                 .get(&sub)
                 .cloned()
-                .ok_or_else(|| "User not found in Keycloak".into())
+                .ok_or_else(|| KeycloakError::UserNotFound(sub))
         }
 
         async fn update_user_info(
             &self,
             sub: Uuid,
             update_req: &UpdateUserRequest,
-        ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        ) -> Result<(), KeycloakError> {
             if self.should_fail {
-                return Err("Keycloak unavailable".into());
+                return Err(KeycloakError::UpdateUserError(
+                    "Keycloak unavailable".into(),
+                ));
             }
             let mut users = self.users.lock().unwrap();
             if let Some(user) = users.get_mut(&sub) {
