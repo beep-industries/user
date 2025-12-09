@@ -2,7 +2,23 @@ use crate::models::{KeycloakUserInfo, UpdateUserRequest};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::future::Future;
 use uuid::Uuid;
+
+/// Trait for Keycloak client operations.
+/// This allows mocking Keycloak in tests.
+pub trait KeycloakClient: Send + Sync + Clone {
+    fn get_user_info(
+        &self,
+        sub: Uuid,
+    ) -> impl Future<Output = Result<KeycloakUserInfo, Box<dyn std::error::Error + Send + Sync>>> + Send;
+
+    fn update_user_info(
+        &self,
+        sub: Uuid,
+        update_req: &UpdateUserRequest,
+    ) -> impl Future<Output = Result<(), Box<dyn std::error::Error + Send + Sync>>> + Send;
+}
 
 #[derive(Debug, Deserialize)]
 struct KeycloakTokenResponse {
@@ -122,5 +138,22 @@ impl KeycloakService {
         }
 
         Ok(())
+    }
+}
+
+impl KeycloakClient for KeycloakService {
+    async fn get_user_info(
+        &self,
+        sub: Uuid,
+    ) -> Result<KeycloakUserInfo, Box<dyn std::error::Error + Send + Sync>> {
+        self.get_user_info(sub).await
+    }
+
+    async fn update_user_info(
+        &self,
+        sub: Uuid,
+        update_req: &UpdateUserRequest,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        self.update_user_info(sub, update_req).await
     }
 }
