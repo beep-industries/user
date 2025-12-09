@@ -3,7 +3,30 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::future::Future;
+use thiserror::Error;
 use uuid::Uuid;
+
+/// Errors that can occur when interacting with Keycloak.
+#[derive(Debug, Error)]
+pub enum KeycloakError {
+    #[error("Failed to get admin token: {0}")]
+    TokenError(String),
+
+    #[error("User not found: {0}")]
+    UserNotFound(Uuid),
+
+    #[error("Failed to get user info: {0}")]
+    GetUserError(String),
+
+    #[error("Failed to update user: {0}")]
+    UpdateUserError(String),
+
+    #[error("HTTP request failed: {0}")]
+    HttpError(#[from] reqwest::Error),
+
+    #[error("Failed to parse response: {0}")]
+    ParseError(String),
+}
 
 /// Trait for Keycloak client operations.
 /// This allows mocking Keycloak in tests.
@@ -11,13 +34,13 @@ pub trait KeycloakClient: Send + Sync + Clone {
     fn get_user_info(
         &self,
         sub: Uuid,
-    ) -> impl Future<Output = Result<KeycloakUserInfo, Box<dyn std::error::Error + Send + Sync>>> + Send;
+    ) -> impl Future<Output = Result<KeycloakUserInfo, KeycloakError>> + Send;
 
     fn update_user_info(
         &self,
         sub: Uuid,
         update_req: &UpdateUserRequest,
-    ) -> impl Future<Output = Result<(), Box<dyn std::error::Error + Send + Sync>>> + Send;
+    ) -> impl Future<Output = Result<(), KeycloakError>> + Send;
 }
 
 #[derive(Debug, Deserialize)]
@@ -54,7 +77,7 @@ impl KeycloakService {
         }
     }
 
-    async fn get_admin_token(&self) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    async fn get_admin_token(&self) -> Result<String, KeycloakError> {
         let token_url = format!(
             "{}/realms/{}/protocol/openid-connect/token",
             self.base_url, self.realm
@@ -68,17 +91,20 @@ impl KeycloakService {
         let response = self.client.post(&token_url).form(&params).send().await?;
 
         if !response.status().is_success() {
-            return Err(format!("Failed to get admin token: {}", response.status()).into());
+            return Err(KeycloakError::TokenError(format!(
+                "HTTP {}",
+                response.status()
+            )));
         }
 
-        let token_response: KeycloakTokenResponse = response.json().await?;
+        let token_response: KeycloakTokenResponse = response
+            .json()
+            .await
+            .map_err(|e| KeycloakError::ParseError(e.to_string()))?;
         Ok(token_response.access_token)
     }
 
-    pub async fn get_user_info(
-        &self,
-        sub: Uuid,
-    ) -> Result<KeycloakUserInfo, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn get_user_info(&self, sub: Uuid) -> Result<KeycloakUserInfo, KeycloakError> {
         let token = self.get_admin_token().await?;
 
         let user_url = format!(
@@ -93,11 +119,21 @@ impl KeycloakService {
             .send()
             .await?;
 
-        if !response.status().is_success() {
-            return Err(format!("Failed to get user info: {}", response.status()).into());
+        if response.status() == reqwest::StatusCode::NOT_FOUND {
+            return Err(KeycloakError::UserNotFound(sub));
         }
 
-        let keycloak_user: KeycloakUser = response.json().await?;
+        if !response.status().is_success() {
+            return Err(KeycloakError::GetUserError(format!(
+                "HTTP {}",
+                response.status()
+            )));
+        }
+
+        let keycloak_user: KeycloakUser = response
+            .json()
+            .await
+            .map_err(|e| KeycloakError::ParseError(e.to_string()))?;
 
         Ok(KeycloakUserInfo {
             username: keycloak_user.username,
@@ -109,7 +145,7 @@ impl KeycloakService {
         &self,
         sub: Uuid,
         update_req: &UpdateUserRequest,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<(), KeycloakError> {
         let token = self.get_admin_token().await?;
 
         let user_url = format!(
@@ -133,8 +169,15 @@ impl KeycloakService {
             .send()
             .await?;
 
+        if response.status() == reqwest::StatusCode::NOT_FOUND {
+            return Err(KeycloakError::UserNotFound(sub));
+        }
+
         if !response.status().is_success() {
-            return Err(format!("Failed to update user info: {}", response.status()).into());
+            return Err(KeycloakError::UpdateUserError(format!(
+                "HTTP {}",
+                response.status()
+            )));
         }
 
         Ok(())
@@ -142,10 +185,7 @@ impl KeycloakService {
 }
 
 impl KeycloakClient for KeycloakService {
-    async fn get_user_info(
-        &self,
-        sub: Uuid,
-    ) -> Result<KeycloakUserInfo, Box<dyn std::error::Error + Send + Sync>> {
+    async fn get_user_info(&self, sub: Uuid) -> Result<KeycloakUserInfo, KeycloakError> {
         KeycloakService::get_user_info(self, sub).await
     }
 
@@ -153,7 +193,7 @@ impl KeycloakClient for KeycloakService {
         &self,
         sub: Uuid,
         update_req: &UpdateUserRequest,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<(), KeycloakError> {
         KeycloakService::update_user_info(self, sub, update_req).await
     }
 }

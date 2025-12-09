@@ -1,3 +1,4 @@
+use crate::services::KeycloakError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -18,13 +19,7 @@ pub enum CoreError {
     InternalError(String),
 
     #[error("Keycloak error: {0}")]
-    KeycloakError(String),
-}
-
-impl From<Box<dyn std::error::Error + Send + Sync>> for CoreError {
-    fn from(err: Box<dyn std::error::Error + Send + Sync>) -> Self {
-        CoreError::InternalError(err.to_string())
-    }
+    KeycloakError(#[from] KeycloakError),
 }
 
 #[cfg(test)]
@@ -57,19 +52,19 @@ mod tests {
 
     #[test]
     fn core_error_keycloak_error_displays_correctly() {
-        let err = CoreError::KeycloakError("Connection failed".to_string());
-        assert_eq!(err.to_string(), "Keycloak error: Connection failed");
+        let keycloak_err = KeycloakError::TokenError("Connection failed".to_string());
+        let err = CoreError::KeycloakError(keycloak_err);
+        assert_eq!(
+            err.to_string(),
+            "Keycloak error: Failed to get admin token: Connection failed"
+        );
     }
 
     #[test]
-    fn core_error_from_boxed_error() {
-        let boxed_err: Box<dyn std::error::Error + Send + Sync> =
-            Box::new(std::io::Error::new(std::io::ErrorKind::Other, "IO error"));
-        let core_err: CoreError = boxed_err.into();
+    fn core_error_from_keycloak_error() {
+        let keycloak_err = KeycloakError::UserNotFound(uuid::Uuid::nil());
+        let core_err: CoreError = keycloak_err.into();
 
-        match core_err {
-            CoreError::InternalError(msg) => assert!(msg.contains("IO error")),
-            _ => panic!("Expected InternalError"),
-        }
+        assert!(matches!(core_err, CoreError::KeycloakError(_)));
     }
 }
