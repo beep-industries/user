@@ -64,6 +64,21 @@ services:
       timeout: 5s
       retries: 5
 
+  # OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.114.0
+    container_name: otel-collector
+    command: ["--config=/etc/otel-config.yaml"]
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "8888:8888"   # Prometheus metrics endpoint
+    volumes:
+      - ./otel-config.yaml:/etc/otel-config.yaml:ro
+    networks:
+      - internal
+    restart: unless-stopped
+
   # User API
   user-api:
     build:
@@ -83,6 +98,7 @@ services:
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
       JWT_SECRET: ${JWT_SECRET}
       RUST_LOG: info
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
     ports:
       - "3000:3000"
       - "3001:3001"
@@ -93,6 +109,8 @@ services:
       user-db:
         condition: service_healthy
       keycloak:
+        condition: service_started
+      otel-collector:
         condition: service_started
 
 volumes:
