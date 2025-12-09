@@ -85,8 +85,6 @@ impl<R: UserRepository + Clone> UserService for UserServiceImpl<R> {
                 description: user.description.clone(),
                 username: keycloak_info.username,
                 email: keycloak_info.email,
-                first_name: keycloak_info.first_name,
-                last_name: keycloak_info.last_name,
             };
             serde_json::to_value(full).map_err(|e| CoreError::InternalError(e.to_string()))
         } else {

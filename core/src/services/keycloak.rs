@@ -16,10 +16,6 @@ struct KeycloakUser {
     id: String,
     username: String,
     email: String,
-    #[serde(rename = "firstName")]
-    first_name: String,
-    #[serde(rename = "lastName")]
-    last_name: String,
 }
 
 #[derive(Clone)]
@@ -90,8 +86,6 @@ impl KeycloakService {
         Ok(KeycloakUserInfo {
             username: keycloak_user.username,
             email: keycloak_user.email,
-            first_name: keycloak_user.first_name,
-            last_name: keycloak_user.last_name,
         })
     }
 
@@ -113,12 +107,6 @@ impl KeycloakService {
         }
         if let Some(email) = &update_req.email {
             update_data.insert("email", serde_json::json!(email));
-        }
-        if let Some(first_name) = &update_req.first_name {
-            update_data.insert("firstName", serde_json::json!(first_name));
-        }
-        if let Some(last_name) = &update_req.last_name {
-            update_data.insert("lastName", serde_json::json!(last_name));
         }
 
         let response = self

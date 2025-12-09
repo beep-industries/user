@@ -9,8 +9,8 @@ use utoipa::OpenApi;
         description = r#"Rust microservice for user management with Keycloak integration.
 
 ## Data Storage
-- **Keycloak Database**: Stores authentication data (username, email, first_name, last_name)
-- **User Service Database**: Stores application-specific data (display_name, profile_picture, status, settings)"#,
+- **Keycloak Database**: Stores authentication data (username, email)
+- **User Service Database**: Stores application-specific data (display_name, profile_picture, description, settings)"#,
         contact(
             name = "API Support",
         )
