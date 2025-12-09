@@ -8,4 +8,4 @@ pub use application::ApplicationService;
 pub use error::CoreError;
 pub use models::*;
 pub use repository::{PostgresUserRepository, UserRepository};
-pub use services::{KeycloakService, UserService, UserServiceImpl};
+pub use services::{KeycloakClient, KeycloakService, UserService, UserServiceImpl};
