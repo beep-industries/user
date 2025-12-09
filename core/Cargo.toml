@@ -24,3 +24,6 @@ config = { path = "../libs/config" }
 
 [features]
 openapi = ["utoipa"]
+
+[dev-dependencies]
+tokio = { version = "1.40", features = ["rt-multi-thread", "macros"] }
