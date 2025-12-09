@@ -41,8 +41,6 @@ pub struct UserBasicInfo {
 pub struct KeycloakUserInfo {
     pub username: String,
     pub email: String,
-    pub first_name: String,
-    pub last_name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -54,8 +52,6 @@ pub struct UserFullInfo {
     pub description: String,
     pub username: String,
     pub email: String,
-    pub first_name: String,
-    pub last_name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -77,10 +73,6 @@ pub struct UpdateUserRequest {
     pub username: Option<String>,
     /// Email address (stored in Keycloak Database)
     pub email: Option<String>,
-    /// First name (stored in Keycloak Database)
-    pub first_name: Option<String>,
-    /// Last name (stored in Keycloak Database)
-    pub last_name: Option<String>,
 }
 
 impl UpdateUserRequest {
@@ -89,10 +81,7 @@ impl UpdateUserRequest {
     }
 
     pub fn has_keycloak_fields(&self) -> bool {
-        self.username.is_some()
-            || self.email.is_some()
-            || self.first_name.is_some()
-            || self.last_name.is_some()
+        self.username.is_some() || self.email.is_some()
     }
 }
 
