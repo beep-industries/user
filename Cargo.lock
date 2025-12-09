@@ -2600,6 +2600,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "thiserror",
+ "tokio",
  "utoipa",
  "uuid",
 ]
