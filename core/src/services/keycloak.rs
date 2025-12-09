@@ -146,7 +146,7 @@ impl KeycloakClient for KeycloakService {
         &self,
         sub: Uuid,
     ) -> Result<KeycloakUserInfo, Box<dyn std::error::Error + Send + Sync>> {
-        self.get_user_info(sub).await
+        KeycloakService::get_user_info(self, sub).await
     }
 
     async fn update_user_info(
@@ -154,6 +154,6 @@ impl KeycloakClient for KeycloakService {
         sub: Uuid,
         update_req: &UpdateUserRequest,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        self.update_user_info(sub, update_req).await
+        KeycloakService::update_user_info(self, sub, update_req).await
     }
 }
