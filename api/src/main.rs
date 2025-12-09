@@ -19,12 +19,12 @@ use clap::{Parser, Subcommand};
 use config::Config;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
-use user_core::{ApplicationService, KeycloakService, PostgresUserRepository};
 use tower_http::{
     cors::{Any, CorsLayer},
     trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer},
 };
 use tracing::Level;
+use user_core::{ApplicationService, KeycloakService, PostgresUserRepository};
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
@@ -46,15 +46,14 @@ enum Commands {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
-        )
-        .init();
-
     let cli = Cli::parse();
     let config = Config::from_env()?;
+
+    let telemetry_config = beep_telemetry::domain::models::Config {
+        port: config.server_port,
+        origins: vec![],
+    };
+    let _guard = beep_telemetry::init(&telemetry_config)?;
 
     match cli.command {
         Commands::Migrate => {
