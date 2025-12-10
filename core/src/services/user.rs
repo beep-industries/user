@@ -12,6 +12,10 @@ pub trait UserService: Send + Sync {
         &self,
         sub: Uuid,
     ) -> impl Future<Output = Result<UserBasicInfo, CoreError>> + Send;
+    fn get_users_by_subs(
+        &self,
+        subs: &[Uuid],
+    ) -> impl Future<Output = Result<Vec<UserBasicInfo>, CoreError>> + Send;
     fn get_current_user_info(
         &self,
         user: &User,
@@ -64,6 +68,20 @@ impl<R: UserRepository + Clone> UserService for UserServiceImpl<R> {
             profile_picture: user.profile_picture,
             description: user.description,
         })
+    }
+
+    async fn get_users_by_subs(&self, subs: &[Uuid]) -> Result<Vec<UserBasicInfo>, CoreError> {
+        let users = self.user_repo.get_users_by_subs(subs).await?;
+
+        Ok(users
+            .into_iter()
+            .map(|user| UserBasicInfo {
+                sub: user.sub,
+                display_name: user.display_name,
+                profile_picture: user.profile_picture,
+                description: user.description,
+            })
+            .collect())
     }
 
     async fn get_current_user_info(

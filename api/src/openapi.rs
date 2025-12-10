@@ -1,3 +1,4 @@
+use crate::handlers::{GetUsersBySubsRequest, GetUsersBySubsResponse};
 use user_core::{Setting, UpdateSettingRequest, UpdateUserRequest, UserBasicInfo, UserFullInfo};
 use utoipa::OpenApi;
 
@@ -24,9 +25,18 @@ use utoipa::OpenApi;
         crate::handlers::get_current_user_settings,
         crate::handlers::update_current_user_settings,
         crate::handlers::get_user_by_sub,
+        crate::handlers::get_users_by_subs,
     ),
     components(
-        schemas(UserBasicInfo, UserFullInfo, UpdateUserRequest, Setting, UpdateSettingRequest)
+        schemas(
+            UserBasicInfo,
+            UserFullInfo,
+            UpdateUserRequest,
+            Setting,
+            UpdateSettingRequest,
+            GetUsersBySubsRequest,
+            GetUsersBySubsResponse
+        )
     ),
     tags(
         (name = "users", description = "User management endpoints"),
