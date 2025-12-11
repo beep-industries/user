@@ -121,13 +121,31 @@ pre-commit run clippy
 
 ## Local Development
 
+### With Docker (recommended)
+
 ```bash
 cp .env.example .env
-docker compose up -d
+docker compose up -d --build
 docker compose exec user-api user-api migrate
 ```
 
 This starts Keycloak, two PostgreSQL databases (one for Keycloak, one for the User Service), and the User API.
+
+### With Cargo (for development)
+
+Start the dependencies (databases and Keycloak):
+
+```bash
+cp .env.example .env
+docker compose up -d keycloak keycloak-db user-db
+```
+
+Run the migrations and start the API:
+
+```bash
+cargo run -- migrate
+cargo run
+```
 
 Services:
 - **User API**: http://localhost:3000
