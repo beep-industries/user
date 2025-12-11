@@ -1,0 +1,11 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    uses: beep-industries/actions/.github/workflows/build-push-main.yml@main
+    secrets: inherit
