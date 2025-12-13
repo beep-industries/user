@@ -9,6 +9,10 @@ pub trait UserRepository: Send + Sync {
         &self,
         sub: Uuid,
     ) -> impl Future<Output = Result<Option<User>, sqlx::Error>> + Send;
+    fn get_users_by_subs(
+        &self,
+        subs: &[Uuid],
+    ) -> impl Future<Output = Result<Vec<User>, sqlx::Error>> + Send;
     fn get_or_create_user(
         &self,
         sub: Uuid,
@@ -73,6 +77,25 @@ impl UserRepository for PostgresUserRepository {
         .await?;
 
         Ok(user)
+    }
+
+    async fn get_users_by_subs(&self, subs: &[Uuid]) -> Result<Vec<User>, sqlx::Error> {
+        if subs.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let users = sqlx::query_as::<_, User>(
+            r#"
+            SELECT sub, display_name, profile_picture, description, created_at, updated_at
+            FROM users
+            WHERE sub = ANY($1)
+            "#,
+        )
+        .bind(subs)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(users)
     }
 
     async fn get_or_create_user(&self, sub: Uuid) -> Result<User, sqlx::Error> {

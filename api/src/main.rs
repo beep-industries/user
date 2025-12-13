@@ -6,14 +6,17 @@ mod state;
 
 use crate::{
     handlers::{
-        get_current_user, get_current_user_settings, get_user_by_sub, update_current_user,
-        update_current_user_settings,
+        get_current_user, get_current_user_settings, get_user_by_sub, get_users_by_subs,
+        update_current_user, update_current_user_settings,
     },
     middleware::auth_middleware,
     openapi::ApiDoc,
     state::AppState,
 };
-use axum::{Json, Router, middleware as axum_middleware, routing::get};
+use axum::{
+    Json, Router, middleware as axum_middleware,
+    routing::{get, post},
+};
 use beep_auth::KeycloakAuthRepository;
 use clap::{Parser, Subcommand};
 use config::Config;
@@ -101,6 +104,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "/users/me/settings",
                     get(get_current_user_settings).put(update_current_user_settings),
                 )
+                .route("/users/bart", post(get_users_by_subs))
                 .route("/users/:sub", get(get_user_by_sub))
                 .layer(axum_middleware::from_fn_with_state(
                     app_state.clone(),

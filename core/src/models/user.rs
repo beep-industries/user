@@ -36,6 +36,17 @@ pub struct UserBasicInfo {
     pub description: String,
 }
 
+impl From<User> for UserBasicInfo {
+    fn from(user: User) -> Self {
+        Self {
+            sub: user.sub,
+            display_name: user.display_name,
+            profile_picture: user.profile_picture,
+            description: user.description,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct KeycloakUserInfo {

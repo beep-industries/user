@@ -12,6 +12,10 @@ pub trait UserService: Send + Sync {
         &self,
         sub: Uuid,
     ) -> impl Future<Output = Result<UserBasicInfo, CoreError>> + Send;
+    fn get_users_by_subs(
+        &self,
+        subs: &[Uuid],
+    ) -> impl Future<Output = Result<Vec<UserBasicInfo>, CoreError>> + Send;
     fn get_current_user_info(
         &self,
         user: &User,
@@ -58,12 +62,13 @@ impl<R: UserRepository + Clone, K: KeycloakClient> UserService for UserServiceIm
             .await?
             .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
 
-        Ok(UserBasicInfo {
-            sub: user.sub,
-            display_name: user.display_name,
-            profile_picture: user.profile_picture,
-            description: user.description,
-        })
+        Ok(user.into())
+    }
+
+    async fn get_users_by_subs(&self, subs: &[Uuid]) -> Result<Vec<UserBasicInfo>, CoreError> {
+        let users = self.user_repo.get_users_by_subs(subs).await?;
+
+        Ok(users.into_iter().map(Into::into).collect())
     }
 
     async fn get_current_user_info(
@@ -84,12 +89,7 @@ impl<R: UserRepository + Clone, K: KeycloakClient> UserService for UserServiceIm
             };
             serde_json::to_value(full).map_err(|e| CoreError::InternalError(e.to_string()))
         } else {
-            let basic = UserBasicInfo {
-                sub: user.sub,
-                display_name: user.display_name.clone(),
-                profile_picture: user.profile_picture.clone(),
-                description: user.description.clone(),
-            };
+            let basic: UserBasicInfo = user.clone().into();
             serde_json::to_value(basic).map_err(|e| CoreError::InternalError(e.to_string()))
         }
     }
@@ -113,12 +113,7 @@ impl<R: UserRepository + Clone, K: KeycloakClient> UserService for UserServiceIm
             user.clone()
         };
 
-        Ok(UserBasicInfo {
-            sub: updated_user.sub,
-            display_name: updated_user.display_name,
-            profile_picture: updated_user.profile_picture,
-            description: updated_user.description,
-        })
+        Ok(updated_user.into())
     }
 
     async fn get_user_settings(&self, sub: Uuid) -> Result<Setting, CoreError> {
