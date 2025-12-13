@@ -22,7 +22,11 @@ use clap::{Parser, Subcommand};
 use config::Config;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer},
+};
+use tracing::Level;
 use user_core::{ApplicationService, KeycloakService, PostgresUserRepository};
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
@@ -45,18 +49,19 @@ enum Commands {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
-        )
-        .init();
-
     let cli = Cli::parse();
     let config = Config::from_env()?;
 
     match cli.command {
         Commands::Migrate => {
+            // Simple logging for migrations (no OTLP needed)
+            tracing_subscriber::fmt()
+                .with_env_filter(
+                    tracing_subscriber::EnvFilter::try_from_default_env()
+                        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+                )
+                .init();
+
             tracing::info!("Connecting to database...");
             let pool = PgPoolOptions::new()
                 .max_connections(5)
@@ -68,6 +73,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             tracing::info!("Migrations completed successfully");
         }
         Commands::Run => {
+            // Full telemetry with OTLP for the running service
+            let telemetry_config = beep_telemetry::domain::models::Config {
+                port: config.server_port,
+                origins: vec![],
+            };
+            let _guard = beep_telemetry::init(&telemetry_config)?;
             tracing::info!("Connecting to database...");
             let pool = PgPoolOptions::new()
                 .max_connections(5)
@@ -98,6 +109,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .allow_methods(Any)
                 .allow_headers(Any);
 
+            let trace_layer = TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
+                .on_request(DefaultOnRequest::new().level(Level::INFO))
+                .on_response(DefaultOnResponse::new().level(Level::INFO));
+
             let protected_routes = Router::new()
                 .route("/users/me", get(get_current_user).put(update_current_user))
                 .route(
@@ -118,7 +134,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let app = Router::new()
                 .merge(public_routes)
                 .merge(protected_routes)
-                .layer(cors);
+                .layer(cors)
+                .layer(trace_layer);
 
             let health_router = Router::new().route(
                 "/health",
