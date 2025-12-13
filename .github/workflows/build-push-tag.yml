@@ -1,0 +1,11 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+
+jobs:
+  build-and-push:
+    uses: beep-industries/actions/.github/workflows/build-push-tag.yml@main
+    secrets: inherit
