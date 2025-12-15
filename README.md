@@ -140,11 +140,13 @@ cp .env.example .env
 docker compose up -d keycloak keycloak-db user-db
 ```
 
+Uncomment and set the `DATABASE_URL` in your `.env` file for local development.
+
 Run the migrations and start the API:
 
 ```bash
 cargo run -- migrate
-cargo run
+cargo run -- run
 ```
 
 Services:
