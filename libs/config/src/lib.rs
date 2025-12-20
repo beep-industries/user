@@ -1,5 +1,33 @@
 use serde::Deserialize;
 use std::env;
+use std::fmt;
+
+#[derive(Debug)]
+pub struct ConfigError {
+    pub missing_vars: Vec<&'static str>,
+}
+
+impl fmt::Display for ConfigError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Missing required environment variables: {}",
+            self.missing_vars.join(", ")
+        )
+    }
+}
+
+impl std::error::Error for ConfigError {}
+
+fn require_env(name: &'static str, missing: &mut Vec<&'static str>) -> Option<String> {
+    match env::var(name) {
+        Ok(val) => Some(val),
+        Err(_) => {
+            missing.push(name);
+            None
+        }
+    }
+}
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
@@ -16,28 +44,45 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_env() -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_env() -> Result<Self, ConfigError> {
         dotenv::dotenv().ok();
 
-        let keycloak_url = env::var("KEYCLOAK_URL")?;
-        let keycloak_internal_url =
-            env::var("KEYCLOAK_INTERNAL_URL").unwrap_or_else(|_| keycloak_url.clone());
+        let mut missing = Vec::new();
+
+        let database_url = require_env("DATABASE_URL", &mut missing);
+        let server_host = require_env("SERVER_HOST", &mut missing);
+        let server_port = require_env("SERVER_PORT", &mut missing);
+        let health_port = require_env("HEALTH_PORT", &mut missing);
+        let keycloak_url = require_env("KEYCLOAK_URL", &mut missing);
+        let keycloak_internal_url = require_env("KEYCLOAK_INTERNAL_URL", &mut missing);
+        let keycloak_realm = require_env("KEYCLOAK_REALM", &mut missing);
+        let keycloak_client_id = require_env("KEYCLOAK_CLIENT_ID", &mut missing);
+        let keycloak_client_secret = require_env("KEYCLOAK_CLIENT_SECRET", &mut missing);
+        let jwt_secret = require_env("JWT_SECRET", &mut missing);
+
+        if !missing.is_empty() {
+            return Err(ConfigError {
+                missing_vars: missing,
+            });
+        }
 
         Ok(Config {
-            database_url: env::var("DATABASE_URL")?,
-            server_host: env::var("SERVER_HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
-            server_port: env::var("SERVER_PORT")
-                .unwrap_or_else(|_| "3000".to_string())
-                .parse()?,
-            health_port: env::var("HEALTH_PORT")
-                .unwrap_or_else(|_| "3001".to_string())
-                .parse()?,
-            keycloak_url,
-            keycloak_internal_url,
-            keycloak_realm: env::var("KEYCLOAK_REALM")?,
-            keycloak_client_id: env::var("KEYCLOAK_CLIENT_ID")?,
-            keycloak_client_secret: env::var("KEYCLOAK_CLIENT_SECRET")?,
-            jwt_secret: env::var("JWT_SECRET")?,
+            database_url: database_url.unwrap(),
+            server_host: server_host.unwrap(),
+            server_port: server_port
+                .unwrap()
+                .parse()
+                .expect("SERVER_PORT must be a valid u16"),
+            health_port: health_port
+                .unwrap()
+                .parse()
+                .expect("HEALTH_PORT must be a valid u16"),
+            keycloak_url: keycloak_url.unwrap(),
+            keycloak_internal_url: keycloak_internal_url.unwrap(),
+            keycloak_realm: keycloak_realm.unwrap(),
+            keycloak_client_id: keycloak_client_id.unwrap(),
+            keycloak_client_secret: keycloak_client_secret.unwrap(),
+            jwt_secret: jwt_secret.unwrap(),
         })
     }
 }
