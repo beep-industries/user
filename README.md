@@ -150,6 +150,7 @@ cargo run -- run
 ```
 
 Services:
+
 - **User API**: http://localhost:3000
 - **Health check**: http://localhost:3001/health
 - **Keycloak**: http://localhost:8080
@@ -164,26 +165,25 @@ Interactive API documentation is available via Scalar at:
 
 The `user-api` binary supports the following commands:
 
-| Command | Description |
-|---------|-------------|
-| `migrate` | Run database migrations |
-| `run` | Start the API server (default) |
+| Command   | Description                    |
+| --------- | ------------------------------ |
+| `migrate` | Run database migrations        |
+| `run`     | Start the API server (default) |
 
 ## Environment Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `KEYCLOAK_DB` | Keycloak database name | `keycloak` |
-| `KEYCLOAK_DB_USER` | Keycloak database user | `keycloak` |
-| `KEYCLOAK_DB_PASSWORD` | Keycloak database password | `keycloak` |
-| `KEYCLOAK_ADMIN` | Keycloak admin username | `admin` |
-| `KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin password | `admin` |
-| `KEYCLOAK_URL` | Keycloak external URL (for browser) | `http://localhost:8080` |
-| `KEYCLOAK_INTERNAL_URL` | Keycloak internal URL (for service) | `http://keycloak:8080` |
-| `KEYCLOAK_REALM` | Keycloak realm name | `myrealm` |
-| `KEYCLOAK_CLIENT_ID` | Keycloak client ID | `user-service` |
-| `KEYCLOAK_CLIENT_SECRET` | Keycloak client secret | `your-client-secret` |
-| `USER_DB` | User service database name | `userservice` |
-| `USER_DB_USER` | User service database user | `userservice` |
-| `USER_DB_PASSWORD` | User service database password | `userservice` |
-| `JWT_SECRET` | JWT secret key | `your-jwt-secret-key` |
+| Variable                  | Description                         | Example                 |
+| ------------------------- | ----------------------------------- | ----------------------- |
+| `KEYCLOAK_DB`             | Keycloak database name              | `keycloak`              |
+| `KEYCLOAK_DB_USER`        | Keycloak database user              | `keycloak`              |
+| `KEYCLOAK_DB_PASSWORD`    | Keycloak database password          | `keycloak`              |
+| `KEYCLOAK_ADMIN`          | Keycloak admin username             | `admin`                 |
+| `KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin password             | `admin`                 |
+| `KEYCLOAK_URL`            | Keycloak external URL (for browser) | `http://localhost:8080` |
+| `KEYCLOAK_INTERNAL_URL`   | Keycloak internal URL (for service) | `http://keycloak:8080`  |
+| `KEYCLOAK_REALM`          | Keycloak realm name                 | `myrealm`               |
+| `KEYCLOAK_CLIENT_ID`      | Keycloak client ID                  | `user-service`          |
+| `KEYCLOAK_CLIENT_SECRET`  | Keycloak client secret              | `your-client-secret`    |
+| `USER_DB`                 | User service database name          | `userservice`           |
+| `USER_DB_USER`            | User service database user          | `userservice`           |
+| `USER_DB_PASSWORD`        | User service database password      | `userservice`           |

@@ -40,7 +40,6 @@ pub struct Config {
     pub keycloak_realm: String,
     pub keycloak_client_id: String,
     pub keycloak_client_secret: String,
-    pub jwt_secret: String,
 }
 
 impl Config {
@@ -57,8 +56,8 @@ impl Config {
         let keycloak_internal_url = require_env("KEYCLOAK_INTERNAL_URL", &mut missing);
         let keycloak_realm = require_env("KEYCLOAK_REALM", &mut missing);
         let keycloak_client_id = require_env("KEYCLOAK_CLIENT_ID", &mut missing);
-        let keycloak_client_secret = require_env("KEYCLOAK_CLIENT_SECRET", &mut missing);
-        let jwt_secret = require_env("JWT_SECRET", &mut missing);
+        let keycloak_client_secret: Option<String> =
+            require_env("KEYCLOAK_CLIENT_SECRET", &mut missing);
 
         if !missing.is_empty() {
             return Err(ConfigError {
@@ -82,7 +81,6 @@ impl Config {
             keycloak_realm: keycloak_realm.unwrap(),
             keycloak_client_id: keycloak_client_id.unwrap(),
             keycloak_client_secret: keycloak_client_secret.unwrap(),
-            jwt_secret: jwt_secret.unwrap(),
         })
     }
 }
