@@ -12,6 +12,10 @@ pub trait UserService: Send + Sync {
         &self,
         sub: Uuid,
     ) -> impl Future<Output = Result<UserBasicInfo, CoreError>> + Send;
+    fn get_user_by_display_name(
+        &self,
+        display_name: &str,
+    ) -> impl Future<Output = Result<UserBasicInfo, CoreError>> + Send;
     fn get_users_by_subs(
         &self,
         subs: &[Uuid],
@@ -59,6 +63,19 @@ impl<R: UserRepository + Clone, K: KeycloakClient> UserService for UserServiceIm
         let user = self
             .user_repo
             .get_user_by_sub(sub)
+            .await?
+            .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
+
+        Ok(user.into())
+    }
+
+    async fn get_user_by_display_name(
+        &self,
+        display_name: &str,
+    ) -> Result<UserBasicInfo, CoreError> {
+        let user = self
+            .user_repo
+            .get_user_by_display_name(display_name)
             .await?
             .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
 
@@ -252,6 +269,28 @@ mod tests {
 
         async fn get_user_by_sub(&self, sub: Uuid) -> Result<Option<User>, sqlx::Error> {
             Ok(self.users.lock().unwrap().get(&sub).cloned())
+        }
+
+        async fn get_user_by_display_name(
+            &self,
+            display_name: &str,
+        ) -> Result<Option<User>, sqlx::Error> {
+            let users = self.users.lock().unwrap();
+            for user in users.values() {
+                if user.display_name == display_name {
+                    return Ok(Some(user.clone()));
+                }
+            }
+            Ok(None)
+        }
+
+        async fn get_users_by_subs(&self, subs: &[Uuid]) -> Result<Vec<User>, sqlx::Error> {
+            let users = self.users.lock().unwrap();
+            let result: Vec<User> = subs
+                .iter()
+                .filter_map(|sub| users.get(sub).cloned())
+                .collect();
+            Ok(result)
         }
 
         async fn get_or_create_user(&self, sub: Uuid) -> Result<User, sqlx::Error> {

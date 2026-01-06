@@ -50,6 +50,8 @@ services:
   user-db:
     image: postgres:18.1
     container_name: user-db
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_DB: ${USER_DB}
       POSTGRES_USER: ${USER_DB_USER}
@@ -70,9 +72,9 @@ services:
     container_name: otel-collector
     command: ["--config=/etc/otel-config.yaml"]
     ports:
-      - "4317:4317"   # OTLP gRPC receiver
-      - "4318:4318"   # OTLP HTTP receiver
-      - "8888:8888"   # Prometheus metrics endpoint
+      - "4317:4317" # OTLP gRPC receiver
+      - "4318:4318" # OTLP HTTP receiver
+      - "8888:8888" # Prometheus metrics endpoint
     volumes:
       - ./otel-config.yaml:/etc/otel-config.yaml:ro
     networks:
