@@ -91,7 +91,7 @@ impl UserRepository for PostgresUserRepository {
             r#"
             SELECT sub, display_name, profile_picture, description, created_at, updated_at
             FROM users
-            WHERE display_name = $1
+            WHERE display_name LIKE $1
             "#,
         )
         .bind(display_name)
