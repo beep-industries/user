@@ -128,28 +128,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ))
                 .with_state(app_state.clone());
 
-            // Internal routes (no authentication - for service-to-service calls)
-            let internal_routes = Router::new()
-                .route(
-                    "/internal/users/username/:username",
-                    get(get_user_by_username),
-                )
-                .with_state(app_state);
-
             // Public routes (no authentication required)
             let public_routes = Router::new().merge(Scalar::with_url("/docs", ApiDoc::openapi()));
 
             let app = Router::new()
                 .merge(public_routes)
-                .merge(internal_routes)
                 .merge(protected_routes)
                 .layer(cors)
                 .layer(trace_layer);
 
-            let health_router = Router::new().route(
-                "/health",
-                get(|| async { Json(serde_json::json!({ "status": "ok" })) }),
-            );
+            // Internal router (health port - not exposed publicly)
+            let internal_router = Router::new()
+                .route(
+                    "/health",
+                    get(|| async { Json(serde_json::json!({ "status": "ok" })) }),
+                )
+                .route("/users/username/:username", get(get_user_by_username))
+                .with_state(app_state);
 
             let api_addr = format!("{}:{}", config.server_host, config.server_port);
             let health_addr = format!("{}:{}", config.server_host, config.health_port);
@@ -162,7 +157,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             tokio::try_join!(
                 axum::serve(api_listener, app),
-                axum::serve(health_listener, health_router),
+                axum::serve(health_listener, internal_router),
             )?;
         }
     }

@@ -9,7 +9,7 @@ use user_core::{UserBasicInfo, UserService};
 
 #[utoipa::path(
     get,
-    path = "/internal/users/username/{username}",
+    path = "/users/username/{username}",
     tag = "internal",
     params(
         ("username" = String, Path, description = "Keycloak username")
