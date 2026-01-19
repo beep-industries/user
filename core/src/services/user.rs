@@ -418,6 +418,68 @@ mod tests {
         }
     }
 
+    mod get_user_by_username {
+        use super::*;
+
+        #[tokio::test]
+        async fn returns_user_when_exists_in_keycloak_and_db() {
+            let sub = Uuid::new_v4();
+            let user = create_test_user(sub);
+            let keycloak_info = KeycloakUserInfo {
+                username: "testuser".to_string(),
+                email: "test@example.com".to_string(),
+            };
+
+            let repo = MockUserRepository::new().with_user(user.clone());
+            let keycloak = MockKeycloakClient::new().with_user(sub, keycloak_info);
+            let service = UserServiceImpl::new(repo, keycloak);
+
+            let result = service.get_user_by_username("testuser").await.unwrap();
+
+            assert_eq!(result.sub, sub);
+            assert_eq!(result.display_name, "Test User");
+        }
+
+        #[tokio::test]
+        async fn returns_not_found_when_user_not_in_keycloak() {
+            let repo = MockUserRepository::new();
+            let keycloak = MockKeycloakClient::new();
+            let service = UserServiceImpl::new(repo, keycloak);
+
+            let result = service.get_user_by_username("nonexistent").await;
+
+            assert!(matches!(result, Err(CoreError::KeycloakError(_))));
+        }
+
+        #[tokio::test]
+        async fn returns_not_found_when_user_in_keycloak_but_not_in_db() {
+            let sub = Uuid::new_v4();
+            let keycloak_info = KeycloakUserInfo {
+                username: "testuser".to_string(),
+                email: "test@example.com".to_string(),
+            };
+
+            let repo = MockUserRepository::new(); // No user in DB
+            let keycloak = MockKeycloakClient::new().with_user(sub, keycloak_info);
+            let service = UserServiceImpl::new(repo, keycloak);
+
+            let result = service.get_user_by_username("testuser").await;
+
+            assert!(matches!(result, Err(CoreError::NotFound(_))));
+        }
+
+        #[tokio::test]
+        async fn returns_error_when_keycloak_fails() {
+            let repo = MockUserRepository::new();
+            let keycloak = MockKeycloakClient::failing();
+            let service = UserServiceImpl::new(repo, keycloak);
+
+            let result = service.get_user_by_username("testuser").await;
+
+            assert!(matches!(result, Err(CoreError::KeycloakError(_))));
+        }
+    }
+
     mod get_current_user_info {
         use super::*;
 

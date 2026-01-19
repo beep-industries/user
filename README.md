@@ -151,9 +151,23 @@ cargo run -- run
 
 Services:
 
-- **User API**: http://localhost:3000
-- **Health check**: http://localhost:3001/health
-- **Keycloak**: http://localhost:8080
+| Port | Description | Access |
+| ---- | ----------- | ------ |
+| 3000 | Public API (JWT auth required) | Public |
+| 3001 | Internal API (no auth) | Internal only |
+| 8080 | Keycloak | Public |
+
+### Internal API (Port 3001)
+
+The internal port exposes endpoints for service-to-service communication without JWT authentication:
+
+- `GET /health` - Health check
+- `GET /users/username/:username` - Get user by Keycloak username
+
+> **⚠️ Security Warning**: The internal port (3001) bypasses authentication. In production, ensure this port is **never exposed publicly**:
+> - **Kubernetes**: Use NetworkPolicy to restrict access to trusted namespaces/pods
+> - **Docker Compose**: Do not publish port 3001 to the host, only expose it on the internal network
+> - **Cloud**: Use security groups/firewall rules to block external access
 
 ### API Documentation
 
