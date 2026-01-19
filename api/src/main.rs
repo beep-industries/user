@@ -6,7 +6,7 @@ mod state;
 
 use crate::{
     handlers::{
-        get_current_user, get_current_user_settings, get_user_by_display_name, get_user_by_sub,
+        get_current_user, get_current_user_settings, get_user_by_sub, get_user_by_username,
         get_users_by_subs, update_current_user, update_current_user_settings,
     },
     middleware::auth_middleware,
@@ -122,14 +122,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 )
                 .route("/users/bart", post(get_users_by_subs))
                 .route("/users/:sub", get(get_user_by_sub))
-                .route(
-                    "/users/display_name/:display_name",
-                    get(get_user_by_display_name),
-                )
                 .layer(axum_middleware::from_fn_with_state(
                     app_state.clone(),
                     auth_middleware,
                 ))
+                .with_state(app_state.clone());
+
+            // Internal routes (no authentication - for service-to-service calls)
+            let internal_routes = Router::new()
+                .route(
+                    "/internal/users/username/:username",
+                    get(get_user_by_username),
+                )
                 .with_state(app_state);
 
             // Public routes (no authentication required)
@@ -137,6 +141,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let app = Router::new()
                 .merge(public_routes)
+                .merge(internal_routes)
                 .merge(protected_routes)
                 .layer(cors)
                 .layer(trace_layer);

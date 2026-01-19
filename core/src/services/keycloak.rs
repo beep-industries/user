@@ -15,6 +15,9 @@ pub enum KeycloakError {
     #[error("User not found: {0}")]
     UserNotFound(Uuid),
 
+    #[error("User not found by username: {0}")]
+    UserNotFoundByUsername(String),
+
     #[error("Failed to get user info: {0}")]
     GetUserError(String),
 
@@ -35,6 +38,11 @@ pub trait KeycloakClient: Send + Sync + Clone {
         &self,
         sub: Uuid,
     ) -> impl Future<Output = Result<KeycloakUserInfo, KeycloakError>> + Send;
+
+    fn get_user_id_by_username(
+        &self,
+        username: &str,
+    ) -> impl Future<Output = Result<Uuid, KeycloakError>> + Send;
 
     fn update_user_info(
         &self,
@@ -141,6 +149,42 @@ impl KeycloakService {
         })
     }
 
+    pub async fn get_user_id_by_username(&self, username: &str) -> Result<Uuid, KeycloakError> {
+        let token = self.get_admin_token().await?;
+
+        let users_url = format!(
+            "{}/admin/realms/{}/users?username={}&exact=true",
+            self.base_url, self.realm, username
+        );
+
+        let response = self
+            .client
+            .get(&users_url)
+            .bearer_auth(&token)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            return Err(KeycloakError::GetUserError(format!(
+                "HTTP {}",
+                response.status()
+            )));
+        }
+
+        let users: Vec<KeycloakUser> = response
+            .json()
+            .await
+            .map_err(|e| KeycloakError::ParseError(e.to_string()))?;
+
+        let user = users
+            .into_iter()
+            .next()
+            .ok_or_else(|| KeycloakError::UserNotFoundByUsername(username.to_string()))?;
+
+        Uuid::parse_str(&user.id)
+            .map_err(|e| KeycloakError::ParseError(format!("Invalid UUID: {}", e)))
+    }
+
     pub async fn update_user_info(
         &self,
         sub: Uuid,
@@ -187,6 +231,10 @@ impl KeycloakService {
 impl KeycloakClient for KeycloakService {
     async fn get_user_info(&self, sub: Uuid) -> Result<KeycloakUserInfo, KeycloakError> {
         KeycloakService::get_user_info(self, sub).await
+    }
+
+    async fn get_user_id_by_username(&self, username: &str) -> Result<Uuid, KeycloakError> {
+        KeycloakService::get_user_id_by_username(self, username).await
     }
 
     async fn update_user_info(

@@ -9,29 +9,25 @@ use user_core::{UserBasicInfo, UserService};
 
 #[utoipa::path(
     get,
-    path = "/users/display_name/{display_name}",
-    tag = "users",
+    path = "/internal/users/username/{username}",
+    tag = "internal",
     params(
-        ("display_name" = String, Path, description = "User display name")
+        ("username" = String, Path, description = "Keycloak username")
     ),
     responses(
         (status = 200, description = "User information retrieved successfully", body = UserBasicInfo),
-        (status = 401, description = "Unauthorized - Invalid or missing JWT token"),
         (status = 404, description = "User not found"),
         (status = 500, description = "Internal server error")
-    ),
-    security(
-        ("bearer_auth" = [])
     )
 )]
-pub async fn get_user_by_display_name(
-    Path(display_name): Path<String>,
+pub async fn get_user_by_username(
+    Path(username): Path<String>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<UserBasicInfo>, ApiError> {
     let user = state
         .service
         .user_service
-        .get_user_by_display_name(&display_name)
+        .get_user_by_username(&username)
         .await?;
     Ok(Json(user))
 }

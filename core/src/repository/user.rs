@@ -9,10 +9,6 @@ pub trait UserRepository: Send + Sync {
         &self,
         sub: Uuid,
     ) -> impl Future<Output = Result<Option<User>, sqlx::Error>> + Send;
-    fn get_user_by_display_name(
-        &self,
-        display_name: &str,
-    ) -> impl Future<Output = Result<Option<User>, sqlx::Error>> + Send;
     fn get_users_by_subs(
         &self,
         subs: &[Uuid],
@@ -77,24 +73,6 @@ impl UserRepository for PostgresUserRepository {
             "#,
         )
         .bind(sub)
-        .fetch_optional(&self.pool)
-        .await?;
-
-        Ok(user)
-    }
-
-    async fn get_user_by_display_name(
-        &self,
-        display_name: &str,
-    ) -> Result<Option<User>, sqlx::Error> {
-        let user = sqlx::query_as::<_, User>(
-            r#"
-            SELECT sub, display_name, profile_picture, description, created_at, updated_at
-            FROM users
-            WHERE display_name LIKE $1
-            "#,
-        )
-        .bind(display_name)
         .fetch_optional(&self.pool)
         .await?;
 
