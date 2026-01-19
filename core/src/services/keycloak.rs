@@ -65,6 +65,11 @@ struct KeycloakUser {
     email: String,
 }
 
+#[derive(Debug, Deserialize)]
+struct KeycloakUserIdOnly {
+    id: String,
+}
+
 #[derive(Clone)]
 pub struct KeycloakService {
     client: Client,
@@ -171,7 +176,7 @@ impl KeycloakService {
             )));
         }
 
-        let users: Vec<KeycloakUser> = response
+        let users: Vec<KeycloakUserIdOnly> = response
             .json()
             .await
             .map_err(|e| KeycloakError::ParseError(e.to_string()))?;
