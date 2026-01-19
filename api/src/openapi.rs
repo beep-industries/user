@@ -25,6 +25,7 @@ use utoipa::OpenApi;
         crate::handlers::get_current_user_settings,
         crate::handlers::update_current_user_settings,
         crate::handlers::get_user_by_sub,
+        crate::handlers::get_user_by_display_name,
         crate::handlers::get_users_by_subs,
     ),
     components(
