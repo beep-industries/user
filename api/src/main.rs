@@ -6,7 +6,7 @@ mod state;
 
 use crate::{
     handlers::{
-        get_current_user, get_current_user_settings, get_user_by_display_name, get_user_by_sub,
+        get_current_user, get_current_user_settings, get_user_by_sub, get_user_by_username,
         get_users_by_subs, update_current_user, update_current_user_settings,
     },
     middleware::auth_middleware,
@@ -122,15 +122,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 )
                 .route("/users/bart", post(get_users_by_subs))
                 .route("/users/:sub", get(get_user_by_sub))
-                .route(
-                    "/users/display_name/:display_name",
-                    get(get_user_by_display_name),
-                )
                 .layer(axum_middleware::from_fn_with_state(
                     app_state.clone(),
                     auth_middleware,
                 ))
-                .with_state(app_state);
+                .with_state(app_state.clone());
 
             // Public routes (no authentication required)
             let public_routes = Router::new().merge(Scalar::with_url("/docs", ApiDoc::openapi()));
@@ -141,10 +137,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .layer(cors)
                 .layer(trace_layer);
 
-            let health_router = Router::new().route(
-                "/health",
-                get(|| async { Json(serde_json::json!({ "status": "ok" })) }),
-            );
+            // Internal router (health port - not exposed publicly)
+            let internal_router = Router::new()
+                .route(
+                    "/health",
+                    get(|| async { Json(serde_json::json!({ "status": "ok" })) }),
+                )
+                .route("/users/username/:username", get(get_user_by_username))
+                .with_state(app_state);
 
             let api_addr = format!("{}:{}", config.server_host, config.server_port);
             let health_addr = format!("{}:{}", config.server_host, config.health_port);
@@ -157,7 +157,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             tokio::try_join!(
                 axum::serve(api_listener, app),
-                axum::serve(health_listener, health_router),
+                axum::serve(health_listener, internal_router),
             )?;
         }
     }

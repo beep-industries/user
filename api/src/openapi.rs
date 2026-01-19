@@ -25,7 +25,7 @@ use utoipa::OpenApi;
         crate::handlers::get_current_user_settings,
         crate::handlers::update_current_user_settings,
         crate::handlers::get_user_by_sub,
-        crate::handlers::get_user_by_display_name,
+        crate::handlers::get_user_by_username,
         crate::handlers::get_users_by_subs,
     ),
     components(
@@ -41,7 +41,8 @@ use utoipa::OpenApi;
     ),
     tags(
         (name = "users", description = "User management endpoints"),
-        (name = "settings", description = "User settings endpoints")
+        (name = "settings", description = "User settings endpoints"),
+        (name = "internal", description = "Internal endpoints for service-to-service calls (no auth required)")
     ),
     modifiers(&SecurityAddon)
 )]

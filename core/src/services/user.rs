@@ -12,9 +12,9 @@ pub trait UserService: Send + Sync {
         &self,
         sub: Uuid,
     ) -> impl Future<Output = Result<UserBasicInfo, CoreError>> + Send;
-    fn get_user_by_display_name(
+    fn get_user_by_username(
         &self,
-        display_name: &str,
+        username: &str,
     ) -> impl Future<Output = Result<UserBasicInfo, CoreError>> + Send;
     fn get_users_by_subs(
         &self,
@@ -72,13 +72,17 @@ impl<R: UserRepository + Clone, K: KeycloakClient> UserService for UserServiceIm
         Ok(user.into())
     }
 
-    async fn get_user_by_display_name(
-        &self,
-        display_name: &str,
-    ) -> Result<UserBasicInfo, CoreError> {
+    async fn get_user_by_username(&self, username: &str) -> Result<UserBasicInfo, CoreError> {
+        // Get user ID from Keycloak by username
+        let sub = self
+            .keycloak_client
+            .get_user_id_by_username(username)
+            .await?;
+
+        // Get user from local DB
         let user = self
             .user_repo
-            .get_user_by_display_name(display_name)
+            .get_user_by_sub(sub)
             .await?
             .ok_or_else(|| CoreError::NotFound("User not found".to_string()))?;
 
@@ -206,6 +210,19 @@ mod tests {
                 .ok_or_else(|| KeycloakError::UserNotFound(sub))
         }
 
+        async fn get_user_id_by_username(&self, username: &str) -> Result<Uuid, KeycloakError> {
+            if self.should_fail {
+                return Err(KeycloakError::GetUserError("Keycloak unavailable".into()));
+            }
+            let users = self.users.lock().unwrap();
+            for (sub, info) in users.iter() {
+                if info.username == username {
+                    return Ok(*sub);
+                }
+            }
+            Err(KeycloakError::UserNotFoundByUsername(username.to_string()))
+        }
+
         async fn update_user_info(
             &self,
             sub: Uuid,
@@ -272,19 +289,6 @@ mod tests {
 
         async fn get_user_by_sub(&self, sub: Uuid) -> Result<Option<User>, sqlx::Error> {
             Ok(self.users.lock().unwrap().get(&sub).cloned())
-        }
-
-        async fn get_user_by_display_name(
-            &self,
-            display_name: &str,
-        ) -> Result<Option<User>, sqlx::Error> {
-            let users = self.users.lock().unwrap();
-            for user in users.values() {
-                if user.display_name == display_name {
-                    return Ok(Some(user.clone()));
-                }
-            }
-            Ok(None)
         }
 
         async fn get_users_by_subs(&self, subs: &[Uuid]) -> Result<Vec<User>, sqlx::Error> {
@@ -413,6 +417,68 @@ mod tests {
             let result = service.get_user_by_sub(sub).await;
 
             assert!(matches!(result, Err(CoreError::NotFound(_))));
+        }
+    }
+
+    mod get_user_by_username {
+        use super::*;
+
+        #[tokio::test]
+        async fn returns_user_when_exists_in_keycloak_and_db() {
+            let sub = Uuid::new_v4();
+            let user = create_test_user(sub);
+            let keycloak_info = KeycloakUserInfo {
+                username: "testuser".to_string(),
+                email: "test@example.com".to_string(),
+            };
+
+            let repo = MockUserRepository::new().with_user(user.clone());
+            let keycloak = MockKeycloakClient::new().with_user(sub, keycloak_info);
+            let service = UserServiceImpl::new(repo, keycloak);
+
+            let result = service.get_user_by_username("testuser").await.unwrap();
+
+            assert_eq!(result.sub, sub);
+            assert_eq!(result.display_name, "Test User");
+        }
+
+        #[tokio::test]
+        async fn returns_not_found_when_user_not_in_keycloak() {
+            let repo = MockUserRepository::new();
+            let keycloak = MockKeycloakClient::new();
+            let service = UserServiceImpl::new(repo, keycloak);
+
+            let result = service.get_user_by_username("nonexistent").await;
+
+            assert!(matches!(result, Err(CoreError::KeycloakError(_))));
+        }
+
+        #[tokio::test]
+        async fn returns_not_found_when_user_in_keycloak_but_not_in_db() {
+            let sub = Uuid::new_v4();
+            let keycloak_info = KeycloakUserInfo {
+                username: "testuser".to_string(),
+                email: "test@example.com".to_string(),
+            };
+
+            let repo = MockUserRepository::new(); // No user in DB
+            let keycloak = MockKeycloakClient::new().with_user(sub, keycloak_info);
+            let service = UserServiceImpl::new(repo, keycloak);
+
+            let result = service.get_user_by_username("testuser").await;
+
+            assert!(matches!(result, Err(CoreError::NotFound(_))));
+        }
+
+        #[tokio::test]
+        async fn returns_error_when_keycloak_fails() {
+            let repo = MockUserRepository::new();
+            let keycloak = MockKeycloakClient::failing();
+            let service = UserServiceImpl::new(repo, keycloak);
+
+            let result = service.get_user_by_username("testuser").await;
+
+            assert!(matches!(result, Err(CoreError::KeycloakError(_))));
         }
     }
 

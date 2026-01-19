@@ -68,10 +68,16 @@ impl From<user_core::CoreError> for ApiError {
             user_core::CoreError::BadRequest(msg) => ApiError::BadRequest(msg),
             user_core::CoreError::Unauthorized(msg) => ApiError::Unauthorized(msg),
             user_core::CoreError::InternalError(msg) => ApiError::InternalServerError(msg),
-            user_core::CoreError::KeycloakError(msg) => {
-                tracing::error!("Keycloak error: {}", msg);
-                ApiError::ServiceUnavailable("Authentication service error".to_string())
-            }
+            user_core::CoreError::KeycloakError(keycloak_err) => match keycloak_err {
+                user_core::KeycloakError::UserNotFound(_)
+                | user_core::KeycloakError::UserNotFoundByUsername(_) => {
+                    ApiError::NotFound("User not found".to_string())
+                }
+                _ => {
+                    tracing::error!("Keycloak error: {}", keycloak_err);
+                    ApiError::ServiceUnavailable("Authentication service error".to_string())
+                }
+            },
         }
     }
 }
