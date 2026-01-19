@@ -33,9 +33,9 @@ pub async fn auth_middleware(
         StatusCode::UNAUTHORIZED
     })?;
 
-    let sub_str = match &identity {
-        Identity::User(user) => &user.id,
-        Identity::Client(client) => &client.id,
+    let (sub_str, username) = match &identity {
+        Identity::User(user) => (&user.id, user.username.as_str()),
+        Identity::Client(client) => (&client.id, client.client_id.as_str()),
     };
 
     let sub = Uuid::parse_str(sub_str).map_err(|e| {
@@ -51,7 +51,7 @@ pub async fn auth_middleware(
     let user = state
         .service
         .user_service
-        .get_or_create_user(sub)
+        .get_or_create_user(sub, username)
         .await
         .map_err(|e| {
             tracing::error!("Failed to get or create user: {}", e);
