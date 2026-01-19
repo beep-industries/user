@@ -4,7 +4,11 @@ use std::future::Future;
 use uuid::Uuid;
 
 pub trait UserRepository: Send + Sync {
-    fn create_user(&self, sub: Uuid) -> impl Future<Output = Result<User, sqlx::Error>> + Send;
+    fn create_user(
+        &self,
+        sub: Uuid,
+        username: &str,
+    ) -> impl Future<Output = Result<User, sqlx::Error>> + Send;
     fn get_user_by_sub(
         &self,
         sub: Uuid,
@@ -20,6 +24,7 @@ pub trait UserRepository: Send + Sync {
     fn get_or_create_user(
         &self,
         sub: Uuid,
+        username: &str,
     ) -> impl Future<Output = Result<User, sqlx::Error>> + Send;
     fn update_user(
         &self,
@@ -53,15 +58,16 @@ impl PostgresUserRepository {
 }
 
 impl UserRepository for PostgresUserRepository {
-    async fn create_user(&self, sub: Uuid) -> Result<User, sqlx::Error> {
+    async fn create_user(&self, sub: Uuid, username: &str) -> Result<User, sqlx::Error> {
         let user = sqlx::query_as::<_, User>(
             r#"
-            INSERT INTO users (sub)
-            VALUES ($1)
+            INSERT INTO users (sub, display_name)
+            VALUES ($1, $2)
             RETURNING sub, display_name, profile_picture, description, created_at, updated_at
             "#,
         )
         .bind(sub)
+        .bind(username)
         .fetch_one(&self.pool)
         .await?;
 
@@ -120,11 +126,11 @@ impl UserRepository for PostgresUserRepository {
         Ok(users)
     }
 
-    async fn get_or_create_user(&self, sub: Uuid) -> Result<User, sqlx::Error> {
+    async fn get_or_create_user(&self, sub: Uuid, username: &str) -> Result<User, sqlx::Error> {
         if let Some(user) = self.get_user_by_sub(sub).await? {
             return Ok(user);
         }
-        self.create_user(sub).await
+        self.create_user(sub, username).await
     }
 
     async fn update_user(&self, sub: Uuid, req: UpdateUserRequest) -> Result<User, sqlx::Error> {

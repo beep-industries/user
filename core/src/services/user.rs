@@ -39,8 +39,11 @@ pub trait UserService: Send + Sync {
         sub: Uuid,
         req: UpdateSettingRequest,
     ) -> impl Future<Output = Result<Setting, CoreError>> + Send;
-    fn get_or_create_user(&self, sub: Uuid)
-    -> impl Future<Output = Result<User, CoreError>> + Send;
+    fn get_or_create_user(
+        &self,
+        sub: Uuid,
+        username: &str,
+    ) -> impl Future<Output = Result<User, CoreError>> + Send;
 }
 
 #[derive(Clone)]
@@ -148,8 +151,8 @@ impl<R: UserRepository + Clone, K: KeycloakClient> UserService for UserServiceIm
         Ok(self.user_repo.update_setting(sub, req).await?)
     }
 
-    async fn get_or_create_user(&self, sub: Uuid) -> Result<User, CoreError> {
-        Ok(self.user_repo.get_or_create_user(sub).await?)
+    async fn get_or_create_user(&self, sub: Uuid, username: &str) -> Result<User, CoreError> {
+        Ok(self.user_repo.get_or_create_user(sub, username).await?)
     }
 }
 
@@ -253,11 +256,11 @@ mod tests {
     }
 
     impl UserRepository for MockUserRepository {
-        async fn create_user(&self, sub: Uuid) -> Result<User, sqlx::Error> {
+        async fn create_user(&self, sub: Uuid, username: &str) -> Result<User, sqlx::Error> {
             let now = Utc::now();
             let user = User {
                 sub,
-                display_name: String::new(),
+                display_name: username.to_string(),
                 profile_picture: String::new(),
                 description: String::new(),
                 created_at: now,
@@ -286,18 +289,17 @@ mod tests {
 
         async fn get_users_by_subs(&self, subs: &[Uuid]) -> Result<Vec<User>, sqlx::Error> {
             let users = self.users.lock().unwrap();
-            let result: Vec<User> = subs
+            Ok(subs
                 .iter()
                 .filter_map(|sub| users.get(sub).cloned())
-                .collect();
-            Ok(result)
+                .collect())
         }
 
-        async fn get_or_create_user(&self, sub: Uuid) -> Result<User, sqlx::Error> {
+        async fn get_or_create_user(&self, sub: Uuid, username: &str) -> Result<User, sqlx::Error> {
             if let Some(user) = self.users.lock().unwrap().get(&sub).cloned() {
                 return Ok(user);
             }
-            self.create_user(sub).await
+            self.create_user(sub, username).await
         }
 
         async fn update_user(
@@ -657,7 +659,7 @@ mod tests {
             let keycloak = MockKeycloakClient::new();
             let service = UserServiceImpl::new(repo, keycloak);
 
-            let result = service.get_or_create_user(sub).await.unwrap();
+            let result = service.get_or_create_user(sub, "testuser").await.unwrap();
 
             assert_eq!(result.sub, sub);
             assert_eq!(result.display_name, "Test User");
@@ -671,10 +673,10 @@ mod tests {
             let keycloak = MockKeycloakClient::new();
             let service = UserServiceImpl::new(repo, keycloak);
 
-            let result = service.get_or_create_user(sub).await.unwrap();
+            let result = service.get_or_create_user(sub, "newuser").await.unwrap();
 
             assert_eq!(result.sub, sub);
-            assert_eq!(result.display_name, "");
+            assert_eq!(result.display_name, "newuser");
         }
     }
 }
