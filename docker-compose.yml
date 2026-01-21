@@ -88,6 +88,7 @@ services:
       dockerfile: Dockerfile
       target: api
     container_name: user-service
+    command: ["migrate"]
     environment:
       DATABASE_URL: postgres://${USER_DB_USER}:${USER_DB_PASSWORD}@user-db:5432/${USER_DB}
       SERVER_HOST: 0.0.0.0
