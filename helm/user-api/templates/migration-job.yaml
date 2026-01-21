@@ -34,10 +34,29 @@ spec:
             - |
               export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=${DB_SSLMODE}"
               exec user-api migrate
-          envFrom:
-            - configMapRef:
-                name: {{ include "user-api.fullname" . }}
           env:
+            - name: SERVER_HOST
+              value: "none"
+            - name: SERVER_PORT
+              value: "0000"
+            - name: HEALTH_PORT
+              value: "0000"
+            - name: KEYCLOAK_URL
+              value: "none"
+            - name: KEYCLOAK_INTERNAL_URL
+              value: "none"
+            - name: KEYCLOAK_REALM
+              value: "none"
+            - name: KEYCLOAK_CLIENT_ID
+              value: "none"
+            - name: DB_HOST
+              value: {{ .Values.database.host | quote }}
+            - name: DB_PORT
+              value: {{ .Values.database.port | quote }}
+            - name: DB_NAME
+              value: {{ .Values.database.name | quote }}
+            - name: DB_SSLMODE
+              value: {{ .Values.database.sslMode | quote }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -49,6 +68,9 @@ spec:
                 secretKeyRef:
                   name: {{ include "user-api.databaseSecretName" . }}
                   key: {{ .Values.database.usernameSecretKey }}
+            {{- else }}
+            - name: DB_USER
+              value: {{ .Values.database.user | quote }}
             {{- end }}
             - name: KEYCLOAK_CLIENT_SECRET
               valueFrom:

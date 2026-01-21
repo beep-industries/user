@@ -4,10 +4,6 @@ metadata:
   name: {{ include "user-api.fullname" . }}
   labels:
     {{- include "user-api.labels" . | nindent 4 }}
-  annotations:
-    "helm.sh/hook": pre-install,pre-upgrade
-    "helm.sh/hook-weight": "-10"
-    "helm.sh/resource-policy": keep
 data:
   SERVER_HOST: {{ .Values.config.server.host | quote }}
   SERVER_PORT: {{ .Values.config.server.port | quote }}
