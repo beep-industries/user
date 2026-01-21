@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "user-api.fullname" . }}
+  labels:
+    {{- include "user-api.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/resource-policy": keep
+data:
+  SERVER_HOST: {{ .Values.config.server.host | quote }}
+  SERVER_PORT: {{ .Values.config.server.port | quote }}
+  HEALTH_PORT: {{ .Values.config.server.healthPort | quote }}
+  RUST_LOG: {{ .Values.config.logLevel | quote }}
+  KEYCLOAK_URL: {{ .Values.keycloak.url | quote }}
+  KEYCLOAK_INTERNAL_URL: {{ .Values.keycloak.internalUrl | quote }}
+  KEYCLOAK_REALM: {{ .Values.keycloak.realm | quote }}
+  KEYCLOAK_CLIENT_ID: {{ .Values.keycloak.clientId | quote }}
+  {{- if .Values.opentelemetry.enabled }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.opentelemetry.endpoint | quote }}
+  {{- end }}
+  # Database connection components
+  DB_HOST: {{ .Values.database.host | quote }}
+  DB_PORT: {{ .Values.database.port | quote }}
+  DB_NAME: {{ .Values.database.name | quote }}
+  DB_SSLMODE: {{ .Values.database.sslMode | quote }}
+  {{- if not .Values.database.existingSecret }}
+  DB_USER: {{ .Values.database.user | quote }}
+  {{- end }}
