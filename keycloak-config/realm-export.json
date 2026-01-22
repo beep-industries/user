@@ -27,7 +27,7 @@
       "publicClient": true,
       "rootUrl": "http://localhost:5173",
       "baseUrl": "http://localhost:5173",
-      "redirectUris": ["http://localhost:5173/*", "http://localhost:5174/*"],
+      "redirectUris": ["http://localhost:5173/*", "http://localhost:5174/*", "http://localhost/explore"],
       "webOrigins": ["http://localhost:5173", "http://localhost:5174"],
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
