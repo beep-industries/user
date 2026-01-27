@@ -20,6 +20,9 @@ pub enum CoreError {
 
     #[error("Keycloak error: {0}")]
     KeycloakError(#[from] KeycloakError),
+
+    #[error("Content service error: {0}")]
+    ContentServiceError(String),
 }
 
 #[cfg(test)]

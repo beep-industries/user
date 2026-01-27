@@ -6,8 +6,7 @@ mod state;
 
 use crate::{
     handlers::{
-        get_current_user, get_current_user_settings, get_user_by_sub, get_user_by_username,
-        get_users_by_subs, update_current_user, update_current_user_settings,
+        get_current_user, get_current_user_settings, get_user_by_sub, get_user_by_username, get_users_by_subs, post_profile_picture_request, update_current_user, update_current_user_settings
     },
     middleware::auth_middleware,
     openapi::ApiDoc,
@@ -27,7 +26,7 @@ use tower_http::{
     trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer},
 };
 use tracing::Level;
-use user_core::{ApplicationService, KeycloakService, PostgresUserRepository};
+use user_core::{ApplicationService, KeycloakService, PostgresUserRepository, services::content::ContentServiceClientImpl};
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
@@ -100,7 +99,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 config.keycloak_client_id,
                 config.keycloak_client_secret,
             );
-            let service = ApplicationService::new(user_repo, keycloak_service);
+            let content_service = ContentServiceClientImpl::new(config.content_service_url);
+
+            let service = ApplicationService::new(user_repo, keycloak_service, content_service);
 
             let app_state = Arc::new(AppState::new(service, auth_repository));
 
@@ -120,6 +121,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "/users/me/settings",
                     get(get_current_user_settings).put(update_current_user_settings),
                 )
+                .route("/users/me/profile-picture", post(post_profile_picture_request))
                 .route("/users/bart", post(get_users_by_subs))
                 .route("/users/:sub", get(get_user_by_sub))
                 .layer(axum_middleware::from_fn_with_state(
