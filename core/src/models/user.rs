@@ -105,6 +105,18 @@ pub struct UpdateSettingRequest {
     pub lang: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
+pub struct ProfilePictureRequest {
+    pub url: String,
+}
+
+impl ProfilePictureRequest {
+    pub fn new(url: String) -> Self {
+        Self { url }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

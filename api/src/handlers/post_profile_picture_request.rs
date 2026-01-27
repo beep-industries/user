@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
-use axum::{Extension, extract::State};
-use user_core::{User, UserService};
+use axum::{Extension, Json, extract::State};
+use user_core::{ProfilePictureRequest, User, UserService};
 
 use crate::{error::ApiError, state::AppState};
 
 #[utoipa::path(
     post,
     path = "/users/me/profile-picture",
+    tag = "users",
     responses(
         (status = 200, description = "Profile picture updated successfully"),
         (status = 401, description = "Unauthorized - Invalid or missing JWT token"),
@@ -20,7 +21,7 @@ use crate::{error::ApiError, state::AppState};
 pub async fn post_profile_picture_request(
     Extension(user): Extension<User>,
     State(state): State<Arc<AppState>>,
-    ) -> Result<String, ApiError> {
+    ) -> Result<Json<ProfilePictureRequest>, ApiError> {
     let url = state.service.user_service.generate_profile_picture_url(&user).await?;
-    Ok(url)
+    Ok(Json(ProfilePictureRequest::new(url)))
 }

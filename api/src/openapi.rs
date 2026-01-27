@@ -1,5 +1,5 @@
 use crate::handlers::{GetUsersBySubsRequest, GetUsersBySubsResponse};
-use user_core::{Setting, UpdateSettingRequest, UpdateUserRequest, UserBasicInfo, UserFullInfo};
+use user_core::{ProfilePictureRequest, Setting, UpdateSettingRequest, UpdateUserRequest, UserBasicInfo, UserFullInfo};
 use utoipa::OpenApi;
 
 #[derive(OpenApi)]
@@ -37,7 +37,8 @@ use utoipa::OpenApi;
             Setting,
             UpdateSettingRequest,
             GetUsersBySubsRequest,
-            GetUsersBySubsResponse
+            GetUsersBySubsResponse,
+            ProfilePictureRequest,
         )
     ),
     tags(
