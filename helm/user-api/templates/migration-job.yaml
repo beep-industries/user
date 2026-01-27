@@ -57,6 +57,8 @@ spec:
               value: {{ .Values.database.name | quote }}
             - name: DB_SSLMODE
               value: {{ .Values.database.sslMode | quote }}
+            - name: CONTENT_SERVICE_URL 
+              value: "none" 
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
