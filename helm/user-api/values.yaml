@@ -142,3 +142,6 @@ probes:
     periodSeconds: 5
     timeoutSeconds: 3
     failureThreshold: 3
+
+contentService:
+  url: "http://content:80"
