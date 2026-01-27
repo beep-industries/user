@@ -13,6 +13,7 @@ data:
   KEYCLOAK_INTERNAL_URL: {{ .Values.keycloak.internalUrl | quote }}
   KEYCLOAK_REALM: {{ .Values.keycloak.realm | quote }}
   KEYCLOAK_CLIENT_ID: {{ .Values.keycloak.clientId | quote }}
+  CONTENT_SERVICE_URL: {{ .Values.contentService.url | quote }}
   {{- if .Values.opentelemetry.enabled }}
   OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.opentelemetry.endpoint | quote }}
   {{- end }}
