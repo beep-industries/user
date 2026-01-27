@@ -28,6 +28,11 @@ struct ContentSigningPayload {
     expires_in: u64,
 }
 
+#[derive(Serialize, Deserialize)]
+struct ContentSigningResponse {
+    url: String,
+}
+
 impl ContentServiceClient for ContentServiceClientImpl {
     async fn get_profile_picture_url(&self, user_id: &str) -> Result<String, String> {
         let url = format!("{}/profile_picture/{}", self.base_url, user_id);
@@ -54,7 +59,8 @@ impl ContentServiceClient for ContentServiceClientImpl {
             return Err(format!("HTTP {}", response.status()));
         }
 
-        Ok(response.url().to_string())
+        let parsed_response = response.json::<ContentSigningResponse>().await.map_err(|e| format!("Failed to parse response: {}", e))?;
+        Ok(parsed_response.url)
     }
 }
 
