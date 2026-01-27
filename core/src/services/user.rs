@@ -3,7 +3,7 @@ use crate::models::{
     Setting, UpdateSettingRequest, UpdateUserRequest, User, UserBasicInfo, UserFullInfo,
 };
 use crate::repository::UserRepository;
-use crate::services::KeycloakClient;
+use crate::services::{ContentServiceClient, KeycloakClient};
 use std::future::Future;
 use uuid::Uuid;
 
@@ -44,24 +44,27 @@ pub trait UserService: Send + Sync {
         sub: Uuid,
         username: &str,
     ) -> impl Future<Output = Result<User, CoreError>> + Send;
+    fn generate_profile_picture_url(&self, user: &User) -> impl Future<Output = Result<String, CoreError>> + Send;
 }
 
 #[derive(Clone)]
-pub struct UserServiceImpl<R: UserRepository, K: KeycloakClient> {
+pub struct UserServiceImpl<R: UserRepository, K: KeycloakClient, C: ContentServiceClient> {
     user_repo: R,
     keycloak_client: K,
+    content_client: C,
 }
 
-impl<R: UserRepository, K: KeycloakClient> UserServiceImpl<R, K> {
-    pub fn new(user_repo: R, keycloak_client: K) -> Self {
+impl<R: UserRepository, K: KeycloakClient, C: ContentServiceClient> UserServiceImpl<R, K, C> {
+    pub fn new(user_repo: R, keycloak_client: K, content_client: C) -> Self {
         Self {
             user_repo,
             keycloak_client,
+            content_client,
         }
     }
 }
 
-impl<R: UserRepository + Clone, K: KeycloakClient> UserService for UserServiceImpl<R, K> {
+impl<R: UserRepository + Clone, K: KeycloakClient, C: ContentServiceClient> UserService for UserServiceImpl<R, K, C> {
     async fn get_user_by_sub(&self, sub: Uuid) -> Result<UserBasicInfo, CoreError> {
         let user = self
             .user_repo
@@ -158,6 +161,12 @@ impl<R: UserRepository + Clone, K: KeycloakClient> UserService for UserServiceIm
     async fn get_or_create_user(&self, sub: Uuid, username: &str) -> Result<User, CoreError> {
         Ok(self.user_repo.get_or_create_user(sub, username).await?)
     }
+
+    async fn generate_profile_picture_url(&self, user: &User) -> Result<String, CoreError> {
+        let url = self.content_client.get_profile_picture_url(user.sub.to_string().as_str()).await
+            .map_err(|e| CoreError::ContentServiceError(e))?;
+        Ok(url)
+    }
 }
 
 #[cfg(test)]
@@ -243,6 +252,28 @@ mod tests {
                 }
             }
             Ok(())
+        }
+    }
+
+    // Mock ContentServiceClient
+    #[derive(Clone)]
+    struct MockContentServiceClient {
+        profile_picture_urls: Arc<Mutex<HashMap<String, String>>>,
+    }
+
+    impl MockContentServiceClient {
+        fn new() -> Self {
+            Self {
+                profile_picture_urls: Arc::new(Mutex::new(HashMap::new())),
+            }
+        }
+    }
+
+    impl ContentServiceClient for MockContentServiceClient {
+        fn get_profile_picture_url(&self, url: &str) -> impl Future<Output = Result<String, String>> + Send {
+            let profile_picture_urls = self.profile_picture_urls.lock().unwrap();
+            let url = profile_picture_urls.get(url).cloned().ok_or_else(|| "Not found".to_string());
+            Box::pin(async move { url })
         }
     }
 
@@ -397,8 +428,9 @@ mod tests {
             let user = create_test_user(sub);
 
             let repo = MockUserRepository::new().with_user(user.clone());
+            let content = MockContentServiceClient::new();
             let keycloak = MockKeycloakClient::new();
-            let service = UserServiceImpl::new(repo, keycloak);
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let result = service.get_user_by_sub(sub).await.unwrap();
 
@@ -412,7 +444,8 @@ mod tests {
 
             let repo = MockUserRepository::new();
             let keycloak = MockKeycloakClient::new();
-            let service = UserServiceImpl::new(repo, keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let result = service.get_user_by_sub(sub).await;
 
@@ -434,7 +467,8 @@ mod tests {
 
             let repo = MockUserRepository::new().with_user(user.clone());
             let keycloak = MockKeycloakClient::new().with_user(sub, keycloak_info);
-            let service = UserServiceImpl::new(repo, keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let result = service.get_user_by_username("testuser").await.unwrap();
 
@@ -446,7 +480,8 @@ mod tests {
         async fn returns_not_found_when_user_not_in_keycloak() {
             let repo = MockUserRepository::new();
             let keycloak = MockKeycloakClient::new();
-            let service = UserServiceImpl::new(repo, keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let result = service.get_user_by_username("nonexistent").await;
 
@@ -463,7 +498,8 @@ mod tests {
 
             let repo = MockUserRepository::new(); // No user in DB
             let keycloak = MockKeycloakClient::new().with_user(sub, keycloak_info);
-            let service = UserServiceImpl::new(repo, keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let result = service.get_user_by_username("testuser").await;
 
@@ -474,7 +510,8 @@ mod tests {
         async fn returns_error_when_keycloak_fails() {
             let repo = MockUserRepository::new();
             let keycloak = MockKeycloakClient::failing();
-            let service = UserServiceImpl::new(repo, keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let result = service.get_user_by_username("testuser").await;
 
@@ -492,7 +529,8 @@ mod tests {
 
             let repo = MockUserRepository::new();
             let keycloak = MockKeycloakClient::new();
-            let service = UserServiceImpl::new(repo, keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let result = service.get_current_user_info(&user, false).await.unwrap();
 
@@ -513,7 +551,8 @@ mod tests {
 
             let repo = MockUserRepository::new();
             let keycloak = MockKeycloakClient::new().with_user(sub, keycloak_info);
-            let service = UserServiceImpl::new(repo, keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let result = service.get_current_user_info(&user, true).await.unwrap();
 
@@ -530,7 +569,8 @@ mod tests {
 
             let repo = MockUserRepository::new();
             let keycloak = MockKeycloakClient::failing();
-            let service = UserServiceImpl::new(repo, keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let result = service.get_current_user_info(&user, true).await;
 
@@ -548,7 +588,8 @@ mod tests {
 
             let repo = MockUserRepository::new().with_user(user.clone());
             let keycloak = MockKeycloakClient::new();
-            let service = UserServiceImpl::new(repo, keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let req = UpdateUserRequest {
                 display_name: Some("New Name".to_string()),
@@ -574,7 +615,8 @@ mod tests {
 
             let repo = MockUserRepository::new().with_user(user.clone());
             let keycloak = MockKeycloakClient::new().with_user(sub, keycloak_info);
-            let service = UserServiceImpl::new(repo, keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let req = UpdateUserRequest {
                 display_name: None,
@@ -596,7 +638,8 @@ mod tests {
 
             let repo = MockUserRepository::new().with_user(user.clone());
             let keycloak = MockKeycloakClient::failing();
-            let service = UserServiceImpl::new(repo, keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let req = UpdateUserRequest {
                 display_name: None,
@@ -618,7 +661,8 @@ mod tests {
 
             let repo = MockUserRepository::new().with_user(user.clone());
             let keycloak = MockKeycloakClient::failing();
-            let service = UserServiceImpl::new(repo.clone(), keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo.clone(), keycloak, content);
 
             let req = UpdateUserRequest {
                 display_name: Some("New Name".to_string()),
@@ -646,7 +690,8 @@ mod tests {
 
             let repo = MockUserRepository::new().with_setting(setting);
             let keycloak = MockKeycloakClient::new();
-            let service = UserServiceImpl::new(repo, keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let result = service.get_user_settings(sub).await.unwrap();
 
@@ -661,7 +706,8 @@ mod tests {
 
             let repo = MockUserRepository::new();
             let keycloak = MockKeycloakClient::new();
-            let service = UserServiceImpl::new(repo, keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let result = service.get_user_settings(sub).await;
 
@@ -679,7 +725,8 @@ mod tests {
 
             let repo = MockUserRepository::new().with_setting(setting);
             let keycloak = MockKeycloakClient::new();
-            let service = UserServiceImpl::new(repo, keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let req = UpdateSettingRequest {
                 theme: Some("light".to_string()),
@@ -699,7 +746,8 @@ mod tests {
 
             let repo = MockUserRepository::new().with_setting(setting);
             let keycloak = MockKeycloakClient::new();
-            let service = UserServiceImpl::new(repo, keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let req = UpdateSettingRequest {
                 theme: None,
@@ -723,7 +771,8 @@ mod tests {
 
             let repo = MockUserRepository::new().with_user(user.clone());
             let keycloak = MockKeycloakClient::new();
-            let service = UserServiceImpl::new(repo, keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let result = service.get_or_create_user(sub, "testuser").await.unwrap();
 
@@ -737,7 +786,8 @@ mod tests {
 
             let repo = MockUserRepository::new();
             let keycloak = MockKeycloakClient::new();
-            let service = UserServiceImpl::new(repo, keycloak);
+            let content = MockContentServiceClient::new();
+            let service = UserServiceImpl::new(repo, keycloak, content);
 
             let result = service.get_or_create_user(sub, "newuser").await.unwrap();
 

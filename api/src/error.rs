@@ -78,6 +78,10 @@ impl From<user_core::CoreError> for ApiError {
                     ApiError::ServiceUnavailable("Authentication service error".to_string())
                 }
             },
+            user_core::CoreError::ContentServiceError(msg) => {
+                tracing::error!("Content service error: {}", msg);
+                ApiError::ServiceUnavailable("Content service error".to_string())
+            }
         }
     }
 }
