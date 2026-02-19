@@ -45,6 +45,12 @@ pub trait UserService: Send + Sync {
         username: &str,
     ) -> impl Future<Output = Result<User, CoreError>> + Send;
     fn generate_profile_picture_url(&self, user: &User) -> impl Future<Output = Result<String, CoreError>> + Send;
+    fn get_users(
+        &self,
+        offset: i64,
+        limit: i64,
+        search: Option<&str>,
+    ) -> impl Future<Output = Result<(Vec<UserBasicInfo>, i64), CoreError>> + Send;
 }
 
 #[derive(Clone)]
@@ -158,7 +164,7 @@ impl<R: UserRepository + Clone, K: KeycloakClient, C: ContentServiceClient> User
         Ok(self.user_repo.update_setting(sub, req).await?)
     }
 
-    async fn get_or_create_user(&self, sub: Uuid, username: &str) -> Result<User, CoreError> {
+    async fn get_or_create_user(&self, sub: Uuid, username: &str) -> Result<getUser, CoreError> {
         Ok(self.user_repo.get_or_create_user(sub, username).await?)
     }
 
@@ -166,6 +172,18 @@ impl<R: UserRepository + Clone, K: KeycloakClient, C: ContentServiceClient> User
         let url = self.content_client.get_profile_picture_url(user.sub.to_string().as_str()).await
             .map_err(|e| CoreError::ContentServiceError(e))?;
         Ok(url)
+    }
+
+    async fn get_users(
+        &self,
+        offset: i64,
+        limit: i64,
+        search: Option<&str>,
+    ) -> Result<(Vec<UserBasicInfo>, i64), CoreError> {
+        let users = self.user_repo.list_users(offset, limit, search).await?;
+        let total = self.user_repo.count_users(search).await?;
+        
+        Ok((users.into_iter().map(Into::into).collect(), total))
     }
 }
 

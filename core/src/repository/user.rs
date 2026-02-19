@@ -40,6 +40,16 @@ pub trait UserRepository: Send + Sync {
         sub: Uuid,
         req: UpdateSettingRequest,
     ) -> impl Future<Output = Result<Setting, sqlx::Error>> + Send;
+    fn get_users(
+        &self,
+        offset: i64,
+        limit: i64,
+        search: Option<&str>,
+    ) -> impl Future<Output = Result<Vec<User>, sqlx::Error>> + Send;
+    fn count_users(
+        &self,
+        search: Option<&str>,
+    ) -> impl Future<Output = Result<i64, sqlx::Error>> + Send;
 }
 
 #[derive(Clone)]
@@ -202,5 +212,46 @@ impl UserRepository for PostgresUserRepository {
             .await?;
 
         Ok(setting)
+    }
+
+    async fn get_users(
+        &self,
+        offset: i64,
+        limit: i64,
+        search: Option<&str>,
+    ) -> Result<Vec<User>, sqlx::Error> {
+        let mut query = sqlx::QueryBuilder::new(
+            "SELECT sub, display_name, profile_picture, description, created_at, updated_at FROM users"
+        );
+
+        if let Some(search_term) = search {
+            query.push(" WHERE display_name ILIKE ");
+            query.push_bind(format!("%{}%", search_term));
+        }
+
+        query.push(" ORDER BY created_at DESC LIMIT ");
+        query.push_bind(limit);
+        query.push(" OFFSET ");
+        query.push_bind(offset);
+
+        let users = query
+            .build_query_as::<User>()
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(users)
+    }
+
+    async fn count_users(&self, search: Option<&str>) -> Result<i64, sqlx::Error> {
+        let mut query = sqlx::QueryBuilder::new("SELECT COUNT(*) as count FROM users");
+
+        if let Some(search_term) = search {
+            query.push(" WHERE display_name ILIKE ");
+            query.push_bind(format!("%{}%", search_term));
+        }
+
+        let result: (i64,) = query.build_query_as().fetch_one(&self.pool).await?;
+
+        Ok(result.0)
     }
 }

@@ -1,4 +1,4 @@
-use crate::handlers::{GetUsersBySubsRequest, GetUsersBySubsResponse};
+use crate::handlers::{GetUsersBySubsRequest, GetUsersBySubsResponse, ListUsersQuery, ListUsersResponse};
 use user_core::{ProfilePictureRequest, Setting, UpdateSettingRequest, UpdateUserRequest, UserBasicInfo, UserFullInfo};
 use utoipa::OpenApi;
 
@@ -28,6 +28,7 @@ use utoipa::OpenApi;
         crate::handlers::get_user_by_sub,
         crate::handlers::get_user_by_username,
         crate::handlers::get_users_by_subs,
+        crate::handlers::get_users,
     ),
     components(
         schemas(
@@ -38,12 +39,15 @@ use utoipa::OpenApi;
             UpdateSettingRequest,
             GetUsersBySubsRequest,
             GetUsersBySubsResponse,
+            ListUsersQuery,
+            ListUsersResponse,
             ProfilePictureRequest,
         )
     ),
     tags(
         (name = "users", description = "User management endpoints"),
         (name = "settings", description = "User settings endpoints"),
+        (name = "admin", description = "Admin endpoints for user management"),
         (name = "internal", description = "Internal endpoints for service-to-service calls (no auth required)")
     ),
     modifiers(&SecurityAddon)

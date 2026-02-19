@@ -6,7 +6,7 @@ mod state;
 
 use crate::{
     handlers::{
-        get_current_user, get_current_user_settings, get_user_by_sub, get_user_by_username, get_users_by_subs, post_profile_picture_request, update_current_user, update_current_user_settings
+        get_current_user, get_current_user_settings, get_user_by_sub, get_user_by_username, get_users_by_subs, get_users, post_profile_picture_request, update_current_user, update_current_user_settings
     },
     middleware::auth_middleware,
     openapi::ApiDoc,
@@ -124,6 +124,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .route("/users/me/profile-picture", post(post_profile_picture_request))
                 .route("/users/bart", post(get_users_by_subs))
                 .route("/users/:sub", get(get_user_by_sub))
+                .route("/users", get(get_users))
                 .layer(axum_middleware::from_fn_with_state(
                     app_state.clone(),
                     auth_middleware,
