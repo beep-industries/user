@@ -203,3 +203,11 @@ The `user-api` binary supports the following commands:
 | `USER_DB`                 | User service database name          | `userservice`           |
 | `USER_DB_USER`            | User service database user          | `userservice`           |
 | `USER_DB_PASSWORD`        | User service database password      | `userservice`           |
+
+## Project Governance
+
+[License](https://github.com/beep-industries/user/blob/main/LICENSE)
+
+[Contributing Guide](https://github.com/beep-industrie/.github/blob/main/CONTRIBUTING.md)
+
+[Code of Conduct](https://github.com/beep-industrie/.github/blob/main/CODE_OF_CONDUCT.md)
