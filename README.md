@@ -169,6 +169,8 @@ The internal port exposes endpoints for service-to-service communication without
 > - **Docker Compose**: Do not publish port 3001 to the host, only expose it on the internal network
 > - **Cloud**: Use security groups/firewall rules to block external access
 
+Also, check the [central](https://github.com/beep-industries/central/) repository to start all services together.
+
 ### API Documentation
 
 Interactive API documentation is available via Scalar at:
